@@ -53,20 +53,20 @@ The implementation of the `Interface` class can be accessed via `ebsd_mapper/ebs
 The `define_headers` function defines the headers for the EBSD CSV files. If the function isn't called, then default values for the headers (i.e., "x", "y", "grain_id", "phi_1", "Phi", "phi_2") will be used.
 
 Parameters:
-* `x`:        Header for the x-coordinate
-* `y`:        Header for the y-coordinate
-* `grain_id`: Header for the grain ID
-* `phi_1`:    Header for the phi_1 values
-* `Phi`:      Header for the Phi values
-* `phi_2`:    Header for the phi_2 values
+* `x`:        Header for the x-coordinate.
+* `y`:        Header for the y-coordinate.
+* `grain_id`: Header for the grain ID.
+* `phi_1`:    Header for the phi_1 values.
+* `Phi`:      Header for the Phi values.
+* `phi_2`:    Header for the phi_2 values.
 
 ## Adding EBSD map and map grains (`add_ebsd`)
 
 The `add_ebsd` function adds an EBSD map and conducts the mapping.
 
 Parameters:
-* `ebsd_path`: Path to the EBSD file as a CSV file
-* `step_size`: Step size between coordinates
+* `ebsd_path`: Path to the EBSD file as a CSV file.
+* `step_size`: Step size between coordinates.
 
 ## Plotting the EBSD maps (`plot_ebsd`)
 
