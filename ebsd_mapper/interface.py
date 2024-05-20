@@ -66,7 +66,7 @@ class Interface:
 
     def add_ebsd(self, ebsd_path:str, step_size:float) -> None:
         """
-        Adds an EBSD map
+        Adds an EBSD map and conducts the mapping
 
         Parameters:
         * `ebsd_path`: Path to the EBSD file as a CSV file
@@ -77,25 +77,25 @@ class Interface:
         self.__controller__.add_ebsd(ebsd_path, step_size)
 
     def plot_ebsd(self, ipf:str="x", figure_x:float=10,
-                  include_id:bool=False, include_boundary:bool=False, id_list:list=None) -> None:
+                  grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
         """
         Plots the EBSD maps
 
         Parameters:
-        * `ipf`:              The IPF colour ("x", "y", "z")
-        * `figure_x`:         The horizontal size of the figures
-        * `include_id`:       Whether to include IDs in the EBSD maps;
-                              define dictionary for custom settings
-        * `include_boundary`: Whether to include IDs in the EBSD maps;
-                              define dictionary for custom settings
-        * `id_list`:          The IDs of the grains to add the IDs and boundaries;
-                              IDs are the ones of the first grain map;
-                              if undefined, adds for all grains
+        * `ipf`:      The IPF colour ("x", "y", "z")
+        * `figure_x`: The horizontal size of the figures
+        * `grain_id`: Whether to include IDs in the EBSD maps;
+                      define dictionary for custom settings
+        * `boundary`: Whether to include IDs in the EBSD maps;
+                      define dictionary for custom settings
+        * `id_list`:  The IDs of the grains to plot the IDs and boundaries;
+                      IDs are the ones of the first grain map;
+                      if undefined, adds for all grains
         """
         num_maps = len(self.__controller__.ebsd_maps)
         self.__print__(f"Plotting {num_maps} EBSD map(s)")
         ebsd_path = self.__get_output__("ebsd")
-        self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, include_id, include_boundary, id_list)
+        self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
 
     def export_map(self) -> None:
         """

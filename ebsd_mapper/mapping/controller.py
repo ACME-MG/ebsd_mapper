@@ -41,7 +41,7 @@ class Controller:
 
     def add_ebsd(self, ebsd_path:str, step_size:float) -> None:
         """
-        Adds an EBSD map
+        Adds an EBSD map and conducts the mapping
 
         Parameters:
         * `ebsd_path`: Path to the EBSD file as a CSV file
@@ -76,25 +76,25 @@ class Controller:
         self.ebsd_maps.append(ebsd_map)
 
     def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10,
-                  include_id:bool=False,include_boundary:bool=False, id_list:list=None) -> None:
+                  grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
         """
         Plots the EBSD maps
 
         Parameters:
-        * `ebsd_path`:        The path to save the EBSD files
-        * `ipf`:              The IPF colour ("x", "y", "z")
-        * `figure_x`:         The horizontal size of the figures
-        * `include_id`:       Whether to include IDs in the EBSD maps;
-                              define dictionary for custom settings
-        * `include_boundary`: Whether to include IDs in the EBSD maps;
-                              define dictionary for custom settings
-        * `id_list`:          The IDs of the grains to add the IDs and boundaries;
-                              if undefined, adds for all grains
+        * `ebsd_path`: The path to save the EBSD files
+        * `ipf`:       The IPF colour ("x", "y", "z")
+        * `figure_x`:  The horizontal size of the figures
+        * `grain_id`:  Whether to include IDs in the EBSD maps;
+                       define dictionary for custom settings
+        * `boundary`:  Whether to include IDs in the EBSD maps;
+                       define dictionary for custom settings
+        * `id_list`:   The IDs of the grains to plot the IDs and boundaries;
+                       if undefined, adds for all grains
         """
 
         # Define settings
-        id_settings = include_id if isinstance(include_id, dict) else {"fontsize": 20, "color": "black"}
-        boundary_settings = include_boundary if isinstance(include_boundary, dict) else {"linewidth": 1, "color": "black"}
+        id_settings = grain_id if isinstance(grain_id, dict) else {"fontsize": 20, "color": "black"}
+        boundary_settings = boundary if isinstance(boundary, dict) else {"linewidth": 1, "color": "black"}
         
         # Get grain IDs for each map
         id_grid = []
@@ -111,9 +111,9 @@ class Controller:
             # Plot EBSD maps
             plotter = Plotter(ebsd_map["pixel_grid"], ebsd_map["grain_map"], ebsd_map["step_size"], figure_x)
             plotter.plot_ebsd(ipf)
-            if isinstance(include_id, bool) and include_id:
+            if isinstance(grain_id, bool) and grain_id:
                 plotter.plot_ids(id_grid[i], settings=id_settings)
-            if isinstance(include_boundary, bool) and include_boundary:
+            if isinstance(boundary, bool) and boundary:
                 plotter.plot_boundaries(id_grid[i], settings=boundary_settings)
             save_plot(f"{ebsd_path}_{i+1}.png")
 
