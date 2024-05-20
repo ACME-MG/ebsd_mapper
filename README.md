@@ -94,8 +94,8 @@ from ebsd_mapper.interface import Interface
 itf = Interface(output_here=True)
 itf.define_headers("x", "y", "grainId", "EulerMean_phi1", "EulerMean_Phi", "EulerMean_phi2")
 
-itf.add_ebsd("ebsd_1", 0.45)
-itf.add_ebsd("ebsd_2.csv", 0.60)
+itf.add_ebsd("ebsd_1.csv", 0.50)
+itf.add_ebsd("ebsd_2.csv", 1.00)
 
 itf.plot_ebsd(
     ipf      = "y",
