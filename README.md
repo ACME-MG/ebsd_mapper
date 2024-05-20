@@ -100,7 +100,7 @@ itf.add_ebsd("ebsd_2.csv", 1.00)
 itf.plot_ebsd(
     ipf      = "y",
     grain_id = True,
-    boundary = True,
+    boundary = {"linewidth": 1, "color": "black"},
     id_list  = [3, 6, 7, 8, 10])
 itf.export_map()
 
