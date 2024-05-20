@@ -3,7 +3,7 @@ For mapping grains across multiple EBSD maps. This repository is particularly us
 
 # CSV format for EBSD data
 
-The code relies on the EBSD data to be discretised and stored in a CSV file. This CSV file must have columns for the x-coordinate, y-coordinate, grain ID, phi_1, Phi, and phi_2 values for each of the discretised cells of the EBSD map. The phi_1, Phi, and phi_2 values should be in degrees for the for the code to work properly. The following is the format for the CSV file.
+The code relies on the EBSD data to be discretised and stored in a CSV file. This CSV file must have columns for the x-coordinate, y-coordinate, grain ID, phi_1, Phi, and phi_2 values for each of the discretised cells of the EBSD map. The phi_1, Phi, and phi_2 values should be in degrees for the for the code to work properly. The following is an example of how the CSV file should be formatted.
 
 |  x   |  y   | grain_id | phi_1 |  Phi  | phi_2 |
 |:----:|:----:|:--------:|:-----:|:-----:|:-----:|
