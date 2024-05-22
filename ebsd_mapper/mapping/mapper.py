@@ -92,15 +92,18 @@ def linear_map_list(value_list:list) -> list:
     mapped_list = [linear_map(value, in_l, in_u, 0, 1) for value in value_list]
     return mapped_list
 
-def map_ebsd(pixel_grid_1:list, grain_map_1:dict, pixel_grid_2:list, grain_map_2:dict) -> dict:
+def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict, grain_map_2:dict,
+             id_list_1:list=None, id_list_2:list=None) -> dict:
     """
     Maps grains from multiple EBSD maps
     
     Parameters:
     * `pixel_grid_1`: First grid of pixels
-    * `grain_map_1`:  First mapping of grains
     * `pixel_grid_2`: Second grid of pixels
+    * `grain_map_1`:  First mapping of grains
     * `grain_map_2`:  Second mapping of grains
+    * `id_list_1`:    First list of grain IDs to do the mapping
+    * `id_list_2`:    Second list of grain IDs to do the mapping
     
     Returns the mapping of the grains as a dictionary
     """
@@ -110,15 +113,23 @@ def map_ebsd(pixel_grid_1:list, grain_map_1:dict, pixel_grid_2:list, grain_map_2
     pixel_grid_2 = shift_pixel_grid(pixel_grid_2, max_id_1)
     grain_map_2 = shift_grain_map(grain_map_2, max_id_1)
 
+    # Identify grains to do mapping
+    grain_ids_1 = list(grain_map_1.keys())
+    if id_list_1 != None:
+        grain_ids_1 = [grain_id for grain_id in grain_ids_1 if grain_id in id_list_1]
+    grain_ids_2 = list(grain_map_2.keys())
+    if id_list_2 != None:
+        grain_ids_2 = [grain_id for grain_id in grain_ids_2 if grain_id-max_id_1 in id_list_2]
+
     # Initialise edge list
-    grain_ids_1 = list(set([pixel for pixel_list in pixel_grid_1 for pixel in pixel_list]))
-    grain_ids_2 = list(set([pixel for pixel_list in pixel_grid_2 for pixel in pixel_list]))
     edge_list = []
     for grain_id_1 in grain_ids_1:
         for grain_id_2 in grain_ids_2:
             edge = Edge(grain_id_1, grain_id_2)
             edge_list.append(edge)
-    
+    if edge_list == []:
+        return None
+
     # Initialise discrepancy sources
     centroid_dict_1 = get_norm_centroids(pixel_grid_1)
     centroid_dict_2 = get_norm_centroids(pixel_grid_2)

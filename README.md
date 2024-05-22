@@ -1,5 +1,5 @@
 # EBSD Mapper
-For mapping grains across multiple EBSD maps. This repository is particularly useful for in situ EBSD where multiple EBSD maps of the same microstructure are obtained as the material specimen is deformed.
+For mapping grains across multiple EBSD maps. This repository is particularly useful for in situ EBSD where multiple EBSD maps of the same microstructure are obtained as the material specimen is deformed. The following README file was last updated on the 20th of May, 2024.
 
 # CSV format for EBSD data
 
@@ -60,9 +60,9 @@ Parameters:
 * `Phi`:      Header for the Phi values.
 * `phi_2`:    Header for the phi_2 values.
 
-## Adding EBSD map and map grains (`add_ebsd`)
+## Adding EBSD map and map grains (`import_ebsd`)
 
-The `add_ebsd` function adds an EBSD map and conducts the mapping.
+The `import_ebsd` function adds an EBSD map and conducts the mapping.
 
 Parameters:
 * `ebsd_path`: Path to the EBSD file as a CSV file.
@@ -74,7 +74,7 @@ The `plot_ebsd` function plots the EBSD maps.
 
 Parameters:
 * `ipf`:              The IPF colour ("x", "y", "z"). The default value is "x".
-* `figure_x`:         The horizontal size of the figures. The default value is 10.
+* `figure_x`:         The initial horizontal size of the figures. The default value is 10.
 * `include_id`:       Whether to include IDs in the EBSD maps; the user can define a dictionary for custom plotting settings. The default value is False.
 * `include_boundary`: Whether to include IDs in the EBSD maps; the user can define a dictionary for custom plotting settings. The default value is False.
 * `id_list`:          The IDs of the grains to plot the grain IDs and boundaries. The IDs should be defined based on the first grain map. If some of the defined IDs are not mappable, they will be ignored. The default value is None, which adds for all mappable grains.
@@ -94,8 +94,8 @@ from ebsd_mapper.interface import Interface
 itf = Interface(output_here=True)
 itf.define_headers("x", "y", "grainId", "EulerMean_phi1", "EulerMean_Phi", "EulerMean_phi2")
 
-itf.add_ebsd("ebsd_1.csv", 0.50)
-itf.add_ebsd("ebsd_2.csv", 1.00)
+itf.import_ebsd("ebsd_1.csv", 0.50)
+itf.import_ebsd("ebsd_2.csv", 1.00)
 
 itf.plot_ebsd(
     ipf      = "y",

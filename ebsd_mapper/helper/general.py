@@ -10,6 +10,17 @@
 import math, os, sys
 import numpy as np
 
+def flatten(list_of_lists:list) -> list:
+    """
+    Flattens a 2D list into a 1D list
+    
+    Parameters:
+    * `list_of_lists`: A list of lists (i.e., a 2D grid)
+    
+    Returns the flattened list
+    """
+    return [item for sublist in list_of_lists for item in sublist]
+
 def try_float(value:str) -> float:
     """
     Tries to float cast a value
@@ -22,7 +33,8 @@ def try_float(value:str) -> float:
     try:
         value = float(value)
     except:
-        return value
+        pass
+    return value
 
 def transpose(list_of_lists:list) -> list:
     """

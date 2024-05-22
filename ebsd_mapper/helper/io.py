@@ -58,16 +58,16 @@ def csv_to_dict(csv_path:str) -> dict:
     data_dict = {}
     with open(csv_path, newline="") as csvfile:
         csvreader = csv.reader(csvfile)
-    headers = next(csvreader)
-    for header in headers:
-        data_dict[header] = []
-    for row in csvreader:
-        for header, value in zip(headers, row):
-            data_dict[header].append(try_float(value))
-    for header in headers:
-        if len(data_dict[header]) == 1:
-            data_dict[header] = data_dict[header][0]
-    return data_dict
+        headers = next(csvreader)
+        for header in headers:
+            data_dict[header] = []
+        for row in csvreader:
+            for header, value in zip(headers, row):
+                data_dict[header].append(try_float(value))
+        for header in headers:
+            if len(data_dict[header]) == 1:
+                data_dict[header] = data_dict[header][0]
+        return data_dict
 
 def dict_to_csv(data_dict:dict, csv_path:str, add_header:bool=True) -> None:
     """
