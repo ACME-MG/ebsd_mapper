@@ -240,7 +240,7 @@ class IPF:
                 plotter = getattr(axis, function)
                 plotter(points[:,0], points[:,1], **settings)
 
-def get_lattice(structure:str="bcc"):
+def get_lattice(structure:str="fcc"):
     """
     Gets the lattice object
 

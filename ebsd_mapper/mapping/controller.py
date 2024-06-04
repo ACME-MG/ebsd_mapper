@@ -175,7 +175,8 @@ class Controller:
                 stats_dict[stat] = [sl[stat_index] for sl in sorted_lists]
 
             # Save dictionary
-            curr_stats_path = get_file_path_exists(f"{stats_path}_{i+1}", "csv")
+            curr_stats_path = stats_path if len(data_dict_list) == 1 else f"{stats_path}_{i+1}"
+            curr_stats_path = get_file_path_exists(curr_stats_path, "csv")
             dict_to_csv(stats_dict, curr_stats_path, add_header=add_header)
 
     def export_map(self, map_path:str) -> None:
@@ -249,7 +250,8 @@ class Controller:
                 plotter.plot_ids(include, settings=id_settings)
             if (isinstance(boundary, bool) and boundary) or isinstance(boundary, dict):
                 plotter.plot_boundaries(include, settings=boundary_settings)
-            save_plot(f"{ebsd_path}_{i+1}.png")
+            curr_ebsd_path = ebsd_path if len(self.ebsd_maps) == 1 else f"{ebsd_path}_{i+1}"
+            save_plot(f"{curr_ebsd_path}.png")
 
     def plot_grain(self, grain_id:int, plot_path:str, ipf:str="x") -> None:
         """
@@ -270,7 +272,7 @@ class Controller:
             ipf             = ipf
         )
 
-    def plot_reorientation(self, plot_path:str, structure:str="bcc", direction:list=[1,0,0], id_list:list=None) -> None:
+    def plot_reorientation(self, plot_path:str, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 

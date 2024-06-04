@@ -1,12 +1,12 @@
 """
- Title:         Optimiser Interface
- Description:   Interface for calibrating models
+ Title:         Interface
+ Description:   Interface for mapping grains between EBSD maps
  Author:        Janzen Choi
 
 """
 
 # Libraries
-import re, time
+import inspect, re, time
 from ebsd_mapper.mapping.controller import Controller
 from ebsd_mapper.helper.general import integer_to_ordinal
 from ebsd_mapper.helper.io import safe_mkdir
@@ -39,7 +39,9 @@ class Interface:
         time_stamp = time.strftime("%y%m%d%H%M%S", time.localtime(self.__start_time__))
         
         # Define input and output
-        title = "" if title == "" else f"_{title}"
+        file_path = inspect.currentframe().f_back.f_code.co_filename
+        file_name = file_path.split("/")[-1].replace(".py","")
+        title = f"_{file_name}" if title == "" else f"_{title}"
         title = re.sub(r"[^a-zA-Z0-9_]", "", title.replace(" ", "_"))
         output_dir = "." if output_here else f"{output_path}/{time_stamp}{title}"
         self.__get_output__ = lambda x : f"{output_dir}/{x}"
@@ -192,7 +194,7 @@ class Interface:
         reorientation_path = self.__get_output__(reorientation_path)
         self.__controller__.export_reorientation(reorientation_path)
 
-    def plot_reorientation(self, plot_path:str="reorientation", structure:str="bcc", direction:list=[1,0,0], id_list:list=None) -> None:
+    def plot_reorientation(self, plot_path:str="reorientation", structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 

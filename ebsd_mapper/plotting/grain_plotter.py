@@ -53,7 +53,7 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_si
 
     # Initialise figure
     subplot_width = 2
-    figure_gap = 0.5
+    figure_gap = 0.8
     subplot_height = subplot_width*y_range/x_range
     subplot_size = math.ceil(math.sqrt(num_maps))
     figure_width = subplot_size * subplot_width + (subplot_size+1) * figure_gap
@@ -91,10 +91,11 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_si
         axis.plot(boundary_x_list, boundary_y_list, linewidth=1, color="black")
 
         # Add text and format axis
-        axis.text(all_min_x+buffer/10, all_max_y-buffer/10, f"ebsd_{i+1}", ha="left", va="top", fontsize=11)
+        axis.set_title(f"ebsd_{i+1}", fontsize=11)
+        # axis.text(all_min_x+buffer/5, all_min_y+buffer/5, f"ebsd_{i+1}", ha="left", va="top", fontsize=11)
         axis.invert_yaxis()
         axis.set_xlim(all_min_x, all_max_x)
-        axis.set_ylim(all_min_y, all_max_y)
+        axis.set_ylim(all_max_y, all_min_y)
         
     # Save the plot
     save_plot(plot_path)

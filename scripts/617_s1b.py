@@ -1,14 +1,17 @@
 import sys; sys.path += [".."]
 from ebsd_mapper.interface import Interface
 
-itf = Interface("617")
-itf.define_headers("x", "y", "grainId", "EulerMean_phi1", "EulerMean_Phi", "EulerMean_phi2")
-itf.define_min_area(10000)
+itf = Interface()
 
-EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data/20240521 (ansto_617_in_situ_ebsd)"
-FILE_NAME = "ebsdExportColumnsTable_fill.csv"
+itf.define_headers("x", "y", "grainId", "EulerMean_phi1", "EulerMean_Phi", "EulerMean_phi2")
+itf.define_min_area(2500)
+
+EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data/20240523 (ansto_617_s1)/hagb15/"
+FILE_NAME = "ebsdExportColumnsTable_NoFill.csv"
+
 itf.import_ebsd(f"{EBSD_FOLDER}/01_strain_0pct_on_stage_finalMapData20/{FILE_NAME}", 5)
-itf.export_stats(stats_path="orientations", stats=["phi_1", "Phi", "phi_2"], add_header=False)
+# itf.export_stats(stats_path="orientations", sort_stat="grain_id", stats=["phi_1", "Phi", "phi_2", "area"], add_header=False)
+# itf.export_stats(stats_path="stats", sort_stat="area", descending=True, stats=["grain_id", "phi_1", "Phi", "phi_2", "area"], add_header=True)
 itf.import_ebsd(f"{EBSD_FOLDER}/02_strain_0p3pct_on_stageMapData21/{FILE_NAME}", 5)
 itf.import_ebsd(f"{EBSD_FOLDER}/03_strain_0p8pct_on_stageMapData22/{FILE_NAME}", 5)
 itf.import_ebsd(f"{EBSD_FOLDER}/04_strain_2p2pct_on_stageMapData23/{FILE_NAME}", 5)
@@ -33,7 +36,11 @@ itf.import_ebsd(f"{EBSD_FOLDER}/14_strain_18p9pct_on_stageMapData33/{FILE_NAME}"
 #     boundary = True,
 # )
 
-id_list = []
-itf.import_map("results/240522165157_617/grain_map.csv")
-itf.export_reorientation()
-itf.plot_reorientation(id_list=id_list)
+itf.import_map("results/240523154426_617_s1b/grain_map.csv")
+# itf.export_reorientation()
+
+cal_id_list = [56, 346, 463, 568, 650] # [75, 189, 314, 346, 463]
+# val_id_list = [35, 96, 117, 123, 135, 215, 346, 462, 463, 593, 650, 696, 745]
+itf.plot_reorientation(id_list=cal_id_list)
+for id in cal_id_list:
+    itf.plot_grain(grain_id=id)

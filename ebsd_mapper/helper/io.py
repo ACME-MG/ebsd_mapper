@@ -6,10 +6,9 @@
 """
 
 # Libraries
-import csv, math, os
+import math, os
 import pandas as pd
-from itertools import zip_longest
-from ebsd_mapper.helper.general import round_sf, try_float
+from ebsd_mapper.helper.general import round_sf
 
 def get_file_path_writable(file_path:str, extension:str):
     """
@@ -46,28 +45,49 @@ def get_file_path_exists(file_path:str, extension:str):
         index += 1
     return new_file_path
 
-def csv_to_dict(csv_path:str) -> dict:
+def csv_to_dict(csv_path:str, delimeter:str=",") -> dict:
     """
     Converts a CSV file into a dictionary
     
     Parameters:
     * `csv_path`:  The path to the CSV file
+    * `delimeter`: The separating character
     
     Returns the dictionary
     """
-    data_dict = {}
-    with open(csv_path, newline="") as csvfile:
-        csvreader = csv.reader(csvfile)
-        headers = next(csvreader)
-        for header in headers:
-            data_dict[header] = []
-        for row in csvreader:
-            for header, value in zip(headers, row):
-                data_dict[header].append(try_float(value))
-        for header in headers:
-            if len(data_dict[header]) == 1:
-                data_dict[header] = data_dict[header][0]
-        return data_dict
+
+    # Read all data from CSV (assume that file is not too big)
+    csv_fh = open(csv_path, "r", encoding="utf-8-sig")
+    csv_lines = csv_fh.readlines()
+    csv_fh.close()
+
+    # Initialisation for conversion
+    csv_dict = {}
+    headers = csv_lines[0].replace("\n", "").split(delimeter)
+    csv_lines = csv_lines[1:]
+    for header in headers:
+        csv_dict[header] = []
+
+    # Start conversion to dict
+    for csv_line in csv_lines:
+        csv_line_list = csv_line.replace("\n", "").split(delimeter)
+        for i in range(len(headers)):
+            value = csv_line_list[i]
+            if value == "":
+                continue
+            try:
+                value = float(value)
+            except:
+                pass
+            csv_dict[headers[i]].append(value)
+    
+    # Convert single item lists to items and things multi-item lists
+    for header in headers:
+        if len(csv_dict[header]) == 1:
+            csv_dict[header] = csv_dict[header][0]
+    
+    # Return
+    return csv_dict
 
 def dict_to_csv(data_dict:dict, csv_path:str, add_header:bool=True) -> None:
     """
@@ -78,13 +98,25 @@ def dict_to_csv(data_dict:dict, csv_path:str, add_header:bool=True) -> None:
     * `csv_path`:  The path that the CSV file will be written to
     * `header`:    Whether to include the header or not
     """
-    headers = list(data_dict.keys())
-    values = list(zip_longest(*data_dict.values(), fillvalue=""))
-    with open(csv_path, "w", newline="") as csvfile:
-        writer = csv.writer(csvfile)
-        if add_header:
-            writer.writerow(headers)
-        writer.writerows(values)
+    
+    # Extract headers and turn all values into lists
+    headers = data_dict.keys()
+    for header in headers:
+        if not isinstance(data_dict[header], list):
+            data_dict[header] = [data_dict[header]]
+    
+    # Open CSV file and write headers
+    csv_fh = open(csv_path, "w+")
+    if add_header:
+        csv_fh.write(",".join(headers) + "\n")
+    
+    # Write data and close
+    max_list_size = max([len(data_dict[header]) for header in headers])
+    for i in range(max_list_size):
+        row_list = [str(data_dict[header][i]) if i < len(data_dict[header]) else "" for header in headers]
+        row_str = ",".join(row_list)
+        csv_fh.write(row_str + "\n")
+    csv_fh.close()
 
 def read_excel(excel_path:str, sheet:str, column:int) -> list:
     """
