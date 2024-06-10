@@ -6,7 +6,7 @@ itf = Interface()
 itf.define_headers("x", "y", "grainId", "EulerMean_phi1", "EulerMean_Phi", "EulerMean_phi2")
 itf.define_min_area(2500)
 
-EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data/20240523 (ansto_617_s1)/hagb15/"
+EBSD_FOLDER = "/mnt/c/Users/Janzen/OneDrive - UNSW/PhD/data/2024-05-23 (ansto_617_s1)/hagb15/"
 FILE_NAME = "ebsdExportColumnsTable_NoFill.csv"
 
 itf.import_ebsd(f"{EBSD_FOLDER}/01_strain_0pct_on_stage_finalMapData20/{FILE_NAME}", 5)

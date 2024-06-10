@@ -13,7 +13,6 @@ from ebsd_mapper.mapping.grain import Grain
 # Special element IDs
 VOID_PIXEL_ID       = 100000 # large number
 UNORIENTED_PIXEL_ID = 100001 # large number + 1
-NO_ORIENTATION      = [0, 0, 0] # for both void and unoriented
 
 def get_void_pixel_grid(x_cells:list, y_cells:list) -> list:
     """
