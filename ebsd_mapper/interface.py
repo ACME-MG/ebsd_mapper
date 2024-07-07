@@ -143,6 +143,8 @@ class Interface:
         self.__check_ebsd__(1)
         if len(self.__controller__.ebsd_maps) > 1:
             self.__check_mapping__()
+        if not grain_id in self.__controller__.map_dict["ebsd_1"]:
+            raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
         plot_path = self.__get_output__(f"{plot_path}_{grain_id}")
         self.__controller__.plot_grain(grain_id, plot_path, ipf)
 
@@ -160,7 +162,7 @@ class Interface:
         * `add_header`: Whether to include the header in the exported file
         * `descending`: Whether to sort the statistics in descending order
         """
-        self.__print__("Exporting the area information")
+        self.__print__("Exporting the statistics of the EBSD map(s)")
         self.__check_ebsd__(1)
         available_stats = ["grain_id", "area", "centroid_x", "centroid_y", "phi_1", "Phi", "phi_2"]
         stats = stats if stats != None else available_stats
