@@ -88,6 +88,29 @@ class Interface:
         self.__print__(f"Adding {ordinal} EBSD map")
         self.__controller__.import_ebsd(ebsd_path, step_size)
 
+    def get_bounds(self) -> dict:
+        """
+        Returns the bounds of the most recently imported EBSD map
+        """
+        self.__print__(f"Getting the bounds of the EBSD map")
+        bounds = self.__controller__.get_bounds()
+        return bounds
+
+    def rebound_ebsd(self, x_min:float, x_max:float, y_min:float, y_max:float) -> None:
+        """
+        Redefines the lower and upper bounds of the most recently
+        imported EBSD map
+        
+        Parameters:
+        * `x_min`: The lowest x value for the new domain
+        * `x_max`: The highest x value for the new domain
+        * `y_min`: The lowest y value for the new domain
+        * `y_max`: The highest y value for the new domain
+        """
+        self.__print__("Redefining the domain of most recently imported EBSD map")
+        self.__check_ebsd__()
+        self.__controller__.rebound_ebsd(x_min, x_max, y_min, y_max)
+
     def map_ebsd(self) -> None:
         """
         Maps the grains of the EBSD maps that have been read in

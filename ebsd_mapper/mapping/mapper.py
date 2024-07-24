@@ -14,19 +14,20 @@ from ebsd_mapper.maths.orientation import deg_to_rad
 
 def get_norm_centroids(pixel_grid:list) -> dict:
     """
-    Gets normalised centroids of a grid
+    Gets normalised centroids of a grid relative
+    to the centre of the grid
     
     Parameters:
     * `pixel_grid`: First grid of pixels
 
     Returns the normalised centroid map
     """
-    x_len = len(pixel_grid[0])
-    y_len = len(pixel_grid)
+    x_size = len(pixel_grid[0])
+    y_size = len(pixel_grid)
     centroid_dict = get_centroids(pixel_grid)
     for grain_id in centroid_dict.keys():
         x, y = centroid_dict[grain_id]
-        centroid_dict[grain_id] = (x/x_len, y/y_len)
+        centroid_dict[grain_id] = ((x-x_size/2)/x_size, (y-y_size/2)/y_size)
     return centroid_dict
 
 def get_norm_areas(pixel_grid:list) -> dict:
