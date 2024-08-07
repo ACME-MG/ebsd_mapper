@@ -198,3 +198,22 @@ def get_average_euler(euler_list:list, degrees:bool=True) -> list:
     if degrees:
         average_euler = rad_to_deg(average_euler)
     return average_euler
+
+def get_geodesic(euler_1:list, euler_2:list) -> float:
+    """
+    Gets the geodesic distance between two euler angles
+    
+    Parameters:
+    * `euler_1`: The first euler-bunge angle (rads)
+    * `euler_2`: The second euler-bunge angle (rads)
+    
+    Returns the geodesic distance
+    """
+    quat_1 = np.array(euler_to_quat(euler_1))
+    quat_2 = np.array(euler_to_quat(euler_2))
+    quat_1 = quat_1 / np.linalg.norm(quat_1)
+    quat_2 = quat_2 / np.linalg.norm(quat_2)
+    dot_product = np.dot(quat_1, quat_2)
+    dot_product = np.clip(dot_product, -1.0, 1.0)
+    distance = np.arccos(np.abs(dot_product))
+    return distance

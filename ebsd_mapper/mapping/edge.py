@@ -7,7 +7,6 @@
 
 # Libraries
 import numpy as np
-from ebsd_mapper.helper.general import round_sf
 
 # Edge class
 class Edge:
@@ -43,7 +42,7 @@ class Edge:
         Parameters:
         * `error`: The error to be added
         """
-        self.errors.append(round_sf(error, 5))
+        self.errors.append(error)
 
     def get_errors(self) -> list:
         """
@@ -55,4 +54,4 @@ class Edge:
         """
         Returns the averaged errors
         """
-        return round_sf(np.average(self.errors), 5)
+        return np.average(self.errors)

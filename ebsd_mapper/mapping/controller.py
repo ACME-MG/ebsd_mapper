@@ -139,9 +139,12 @@ class Controller:
                 new_grain_map[pixel] = grain_map[pixel]
         self.ebsd_maps[-1]["grain_map"] = new_grain_map
 
-    def map_ebsd(self) -> None:
+    def map_ebsd(self, radius:float) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
+        
+        Parameters:
+        * `radius`: The radius to do the mapping; (1.0 covers the whole map)
         """
 
         # Get initial map
@@ -173,6 +176,7 @@ class Controller:
                 grain_map_2  = grain_map_2,
                 id_list_1    = id_list_1,
                 id_list_2    = id_list_2,
+                radius       = radius,
             )
 
             # No grains could be mapped

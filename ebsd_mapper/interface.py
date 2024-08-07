@@ -111,13 +111,16 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.rebound_ebsd(x_min, x_max, y_min, y_max)
 
-    def map_ebsd(self) -> None:
+    def map_ebsd(self, radius:float) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
+        
+        Parameters:
+        * `radius`: The radius to do the mapping; (1.0 covers the whole map)
         """
         self.__check_ebsd__(2)
         self.__print__(f"Mapping the grains of EBSD maps")
-        self.__controller__.map_ebsd()
+        self.__controller__.map_ebsd(radius)
 
     def import_map(self, map_path:str) -> None:
         """

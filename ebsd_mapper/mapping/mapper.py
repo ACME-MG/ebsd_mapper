@@ -8,9 +8,10 @@
 # Libraries
 import math
 from ebsd_mapper.mapping.edge import Edge
+from ebsd_mapper.helper.general import transpose
 from ebsd_mapper.mapping.gridder import get_centroids, get_max_grain_id, shift_pixel_grid, shift_grain_map
 from ebsd_mapper.maths.csl import get_disorientation
-from ebsd_mapper.maths.orientation import deg_to_rad
+from ebsd_mapper.maths.orientation import get_geodesic, deg_to_rad
 
 def get_norm_centroids(pixel_grid:list) -> dict:
     """
@@ -93,8 +94,8 @@ def linear_map_list(value_list:list) -> list:
     mapped_list = [linear_map(value, in_l, in_u, 0, 1) for value in value_list]
     return mapped_list
 
-def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict, grain_map_2:dict,
-             id_list_1:list=None, id_list_2:list=None) -> dict:
+def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict,
+             grain_map_2:dict, id_list_1:list, id_list_2:list, radius:float=0.3) -> dict:
     """
     Maps grains from multiple EBSD maps
     
@@ -105,6 +106,7 @@ def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict, grain_map_2
     * `grain_map_2`:  Second mapping of grains
     * `id_list_1`:    First list of grain IDs to do the mapping
     * `id_list_2`:    Second list of grain IDs to do the mapping
+    * `radius`:       The radius to do the mapping; (1.0 covers the whole map)
     
     Returns the mapping of the grains as a dictionary
     """
@@ -116,20 +118,9 @@ def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict, grain_map_2
 
     # Identify grains to do mapping
     grain_ids_1 = list(grain_map_1.keys())
-    if id_list_1 != None:
-        grain_ids_1 = [grain_id for grain_id in grain_ids_1 if grain_id in id_list_1]
+    grain_ids_1 = [grain_id for grain_id in grain_ids_1 if grain_id in id_list_1]
     grain_ids_2 = list(grain_map_2.keys())
-    if id_list_2 != None:
-        grain_ids_2 = [grain_id for grain_id in grain_ids_2 if grain_id-max_id_1 in id_list_2]
-
-    # Initialise edge list
-    edge_list = []
-    for grain_id_1 in grain_ids_1:
-        for grain_id_2 in grain_ids_2:
-            edge = Edge(grain_id_1, grain_id_2)
-            edge_list.append(edge)
-    if edge_list == []:
-        return None
+    grain_ids_2 = [grain_id for grain_id in grain_ids_2 if grain_id-max_id_1 in id_list_2]
 
     # Initialise discrepancy sources
     centroid_dict_1 = get_norm_centroids(pixel_grid_1)
@@ -137,39 +128,54 @@ def map_ebsd(pixel_grid_1:list, pixel_grid_2:list, grain_map_1:dict, grain_map_2
     area_dict_1 = get_norm_areas(pixel_grid_1)
     area_dict_2 = get_norm_areas(pixel_grid_2)
     
-    # Calculate errors
-    error_dict = {"centroid_error": [], "orientation_error": [], "area_error": []}
-    for edge in edge_list:
-        grain_id_1 = edge.get_node_1()
-        grain_id_2 = edge.get_node_2()
+    # Initialise edge list
+    edge_list = []
+    for grain_id_1 in grain_ids_1:
+        
+        # Get distances
+        c_1 = centroid_dict_1[grain_id_1]
+        get_dist = lambda c_2 : math.sqrt(math.pow(c_1[0]-c_2[0], 2) + math.pow(c_1[1]-c_2[1], 2))
+        distance_list = [get_dist(centroid_dict_2[grain_id_2]) for grain_id_2 in grain_ids_2]
 
-        # Calculate centroid error
-        x_1, y_1 = centroid_dict_1[grain_id_1]
-        x_2, y_2 = centroid_dict_2[grain_id_2]
-        centroid_error = math.sqrt(math.pow(x_1-x_2,2) + math.pow(y_1-y_2,2))
-        error_dict["centroid_error"].append(centroid_error)
+        # Initial properties of grains within close proximity
+        close_ids_2 = []
+        error_grid = [[] for _ in range(3)]
+        
+        # Calculate errors for grains within close proximity
+        for grain_id_2, distance in zip(grain_ids_2, distance_list):
+            
+            # Consider connection if within close proximity
+            if distance > radius:
+                continue
+            close_ids_2.append(grain_id_2)
+            
+            # Calculate geodesic distance
+            euler_1 = deg_to_rad(list(grain_map_1[grain_id_1].get_orientation()))
+            euler_2 = deg_to_rad(list(grain_map_2[grain_id_2].get_orientation()))
+            geodesic = get_geodesic(euler_1, euler_2)
+            
+            # Calculate area error
+            area_1 = area_dict_1[grain_id_1]
+            area_2 = area_dict_2[grain_id_2]
+            area_diff = abs((area_1-area_2)/area_1)
+            
+            # Add errors
+            error_grid[0].append(distance)
+            error_grid[1].append(geodesic)
+            error_grid[2].append(area_diff)
+    
+        # Add weighted edge to edge list based on normalised error
+        error_grid = transpose([linear_map_list(error_list) for error_list in error_grid])
+        for close_id_2, error_list in zip(close_ids_2, error_grid):
+            edge = Edge(grain_id_1, close_id_2)
+            for error in error_list:
+                edge.add_error(error)
+            edge_list.append(edge)
 
-        # Calculate orientation error
-        euler_1 = grain_map_1[grain_id_1].get_orientation()
-        euler_1 = deg_to_rad(list(euler_1))
-        euler_2 = grain_map_2[grain_id_2].get_orientation()
-        euler_2 = deg_to_rad(list(euler_2))
-        disorientation = get_disorientation(euler_1, euler_2, "cubic")
-        orientation_error = disorientation
-        error_dict["orientation_error"].append(orientation_error)
-
-        # Calculate area error
-        area_1 = area_dict_1[grain_id_1]
-        area_2 = area_dict_2[grain_id_2]
-        area_error = abs(area_1 - area_2)/area_1
-        error_dict["area_error"].append(area_error)
-
-    # Normalise errors and define weights of edges
-    for name in ["centroid_error", "orientation_error", "area_error"]:
-        error_dict[name] = linear_map_list(error_dict[name])
-        for i, edge in enumerate(edge_list):
-            edge.add_error(error_dict[name][i])
-
+    # Alert if no mappings
+    if edge_list == []:
+        return None
+    
     # Initialise mapping information
     weight_list = [edge.get_weight() for edge in edge_list]
     sorted_weight_list = sorted(weight_list)
