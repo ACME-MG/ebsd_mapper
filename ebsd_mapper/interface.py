@@ -7,7 +7,7 @@
 
 # Libraries
 import inspect, re, time
-from ebsd_mapper.mapping.controller import Controller
+from ebsd_mapper.mapper.controller import Controller
 from ebsd_mapper.helper.general import integer_to_ordinal
 from ebsd_mapper.helper.io import safe_mkdir
 

@@ -8,10 +8,11 @@
 # Libraries
 import math
 from copy import deepcopy
-from ebsd_mapper.mapping.gridder import get_void_pixel_grid, read_pixels, get_centroids, VOID_PIXEL_ID
-from ebsd_mapper.mapping.mapper import map_ebsd
+from ebsd_mapper.mapper.gridder import get_void_pixel_grid, read_pixels, VOID_PIXEL_ID
+from ebsd_mapper.mapper.mapper import Mapper
+from ebsd_mapper.ebsd.map import Map
 from ebsd_mapper.plotting.ebsd_plotter import EBSDPlotter
-from ebsd_mapper.helper.general import transpose, integer_to_ordinal, round_sf
+from ebsd_mapper.helper.general import transpose, round_sf
 from ebsd_mapper.helper.io import dict_to_csv, csv_to_dict, get_file_path_exists
 from ebsd_mapper.helper.plotter import save_plot
 from ebsd_mapper.maths.orientation import deg_to_rad
@@ -64,7 +65,7 @@ class Controller:
         * `step_size`: Step size between coordinates
         """
         new_pixel_grid, new_grain_map = read_pixels(ebsd_path, step_size, self.headers)
-        ebsd_map = {"pixel_grid": new_pixel_grid, "grain_map": new_grain_map, "step_size": step_size}
+        ebsd_map = Map(new_pixel_grid, new_grain_map, step_size)
         self.ebsd_maps.append(ebsd_map)
 
     def get_bounds(self) -> dict:
@@ -73,8 +74,8 @@ class Controller:
         """
 
         # Gets the most recently added EBSD map
-        pixel_grid = self.ebsd_maps[-1]["pixel_grid"]
-        step_size  = self.ebsd_maps[-1]["step_size"]
+        pixel_grid = self.ebsd_maps[-1].get_pixel_grid()
+        step_size  = self.ebsd_maps[-1].get_step_size()
 
         # Initialise bounds
         big_number = 1e7
@@ -106,9 +107,9 @@ class Controller:
         """
 
         # Gets the most recently added EBSD map
-        pixel_grid = self.ebsd_maps[-1]["pixel_grid"]
-        grain_map  = self.ebsd_maps[-1]["grain_map"]
-        step_size  = self.ebsd_maps[-1]["step_size"]
+        pixel_grid = self.ebsd_maps[-1].get_pixel_grid()
+        grain_map  = self.ebsd_maps[-1].get_grain_map()
+        step_size  = self.ebsd_maps[-1].get_step_size()
         
         # Get boundaries
         x_min = round(x_min / step_size)
@@ -129,7 +130,7 @@ class Controller:
                 new_col, new_row = abs(col-x_min), abs(row-y_min)
                 if new_col >= 0 and new_row >= 0 and new_col < new_x_size and new_row < new_y_size:
                     new_pixel_grid[new_row][new_col] = deepcopy(pixel_grid[row][col])
-        self.ebsd_maps[-1]["pixel_grid"] = new_pixel_grid
+        self.ebsd_maps[-1].set_pixel_grid(new_pixel_grid)
 
         # Create new grain map and replace
         all_pixel_ids = list(set([pixel for pixel_list in new_pixel_grid for pixel in pixel_list]))
@@ -137,7 +138,7 @@ class Controller:
         for pixel in all_pixel_ids:
             if pixel in grain_map.keys():
                 new_grain_map[pixel] = grain_map[pixel]
-        self.ebsd_maps[-1]["grain_map"] = new_grain_map
+        self.ebsd_maps[-1].set_grain_map(new_grain_map)
 
     def map_ebsd(self, radius:float) -> None:
         """
@@ -146,64 +147,8 @@ class Controller:
         Parameters:
         * `radius`: The radius to do the mapping; (1.0 covers the whole map)
         """
-
-        # Get initial map
-        first_grain_map = self.ebsd_maps[0]["grain_map"]
-        first_step_size = self.ebsd_maps[0]["step_size"]
-        first_grain_ids = get_grain_ids(first_grain_map, first_step_size, self.min_area)
-        all_map_dict = {"ebsd_1": sorted(first_grain_ids)}
-        print()
-
-        # Conduct additional mapping
-        for i in range(1,len(self.ebsd_maps)):
-
-            # Get information of first EBSD map
-            pixel_grid_1 = self.ebsd_maps[i-1]["pixel_grid"]
-            grain_map_1  = self.ebsd_maps[i-1]["grain_map"]
-            id_list_1    = all_map_dict[f"ebsd_{i}"]
-
-            # Get information of second EBSD map
-            pixel_grid_2 = self.ebsd_maps[i]["pixel_grid"]
-            grain_map_2  = self.ebsd_maps[i]["grain_map"]
-            step_size_2  = self.ebsd_maps[i]["step_size"]
-            id_list_2    = get_grain_ids(grain_map_2, step_size_2, self.min_area)
-
-            # Conduct mapping
-            map_dict_12 = map_ebsd(
-                pixel_grid_1 = pixel_grid_1,
-                pixel_grid_2 = pixel_grid_2,
-                grain_map_1  = grain_map_1,
-                grain_map_2  = grain_map_2,
-                id_list_1    = id_list_1,
-                id_list_2    = id_list_2,
-                radius       = radius,
-            )
-
-            # No grains could be mapped
-            if map_dict_12 == None:
-                raise ValueError("No mapping could be done!")
-
-            # Redefine new grain IDs
-            new_id_list_2 = []
-            for id_1 in id_list_1:
-                id_2 = map_dict_12[id_1] if id_1 in map_dict_12.keys() else NO_MAPPING
-                new_id_list_2.append(id_2)
-            all_map_dict[f"ebsd_{i+1}"] = new_id_list_2
-
-            # Print progress
-            first_ordinal = integer_to_ordinal(i)
-            second_ordinal = integer_to_ordinal(i+1)
-            print(f"  Mapped grains of {first_ordinal} map to {second_ordinal} map")
-        
-        # Only include mappable grains
-        all_mappings = list(all_map_dict.keys())
-        self.map_dict = dict(zip(all_map_dict.keys(), [[] for _ in range(len(all_mappings))]))
-        for i in range(len(all_map_dict[all_mappings[0]])):
-            map_list = [all_map_dict[mapping][i] for mapping in all_mappings]
-            if not NO_MAPPING in map_list:
-                for j, key in enumerate(self.map_dict.keys()):
-                    self.map_dict[key].append(int(map_list[j]))
-        print(f"  Finished mapping grains of added EBSD maps\n")
+        mapper = Mapper(self.ebsd_maps, radius, self.min_area)
+        self.map_dict = mapper.link_ebsd_maps()
 
     def import_map(self, map_path:str) -> None:
         """
@@ -310,15 +255,15 @@ class Controller:
         
         # Initialise figure dimensions
         current_figure_x = figure_x
-        initial_x_size = len(self.ebsd_maps[0]["pixel_grid"][0])*self.ebsd_maps[0]["step_size"]
+        initial_x_size = len(self.ebsd_maps[0].get_pixel_grid()[0])*self.ebsd_maps[0].get_step_size()
 
         # Iterate through EBSD maps
         for i, ebsd_map in enumerate(self.ebsd_maps):
             
             # Plot EBSD maps
-            current_x_size = len(ebsd_map["pixel_grid"][0])*ebsd_map["step_size"]
+            current_x_size = len(ebsd_map.get_pixel_grid()[0])*ebsd_map.get_step_size()
             current_figure_x = figure_x*current_x_size/initial_x_size
-            plotter = EBSDPlotter(ebsd_map["pixel_grid"], ebsd_map["grain_map"], ebsd_map["step_size"], current_figure_x)
+            plotter = EBSDPlotter(ebsd_map, current_figure_x)
             plotter.plot_ebsd(ipf)
 
             # Add IDs and boundaries if specified, and save
@@ -341,9 +286,9 @@ class Controller:
         """
         plot_grain(
             plot_path       = f"{plot_path}.png",
-            pixel_grid_list = [ebsd_map["pixel_grid"] for ebsd_map in self.ebsd_maps],
-            grain_map_list  = [ebsd_map["grain_map"] for ebsd_map in self.ebsd_maps],
-            step_size_list  = [ebsd_map["step_size"] for ebsd_map in self.ebsd_maps],
+            pixel_grid_list = [ebsd_map.get_pixel_grid() for ebsd_map in self.ebsd_maps],
+            grain_map_list  = [ebsd_map.get_grain_map() for ebsd_map in self.ebsd_maps],
+            step_size_list  = [ebsd_map.get_step_size() for ebsd_map in self.ebsd_maps],
             map_dict        = self.map_dict,
             grain_id        = grain_id,
             ipf             = ipf
@@ -412,7 +357,7 @@ class Controller:
             grain_fields = [f"g{base_id}_{p}" for p in ["phi_1", "Phi", "phi_2"]]
             for j, ebsd_map in enumerate(self.ebsd_maps):
                 grain_id = self.map_dict[f"ebsd_{j+1}"][i]
-                orientation = ebsd_map["grain_map"][grain_id].get_orientation()
+                orientation = ebsd_map.get_grain(grain_id).get_orientation()
                 orientation = deg_to_rad(list(orientation))
                 for k in range(len(grain_fields)):
                     reorientation_dict[grain_fields[k]].append(orientation[k])
@@ -435,20 +380,20 @@ class Controller:
             if f"ebsd_{i+1}" in self.map_dict.keys():
                 grain_ids = self.map_dict[f"ebsd_{i+1}"]
             else:
-                grain_ids = sorted(list(ebsd_map["grain_map"].keys()))
+                grain_ids = ebsd_map.get_grain_ids()
 
             # Calculate areas
-            step_size = ebsd_map["step_size"]
+            step_size = ebsd_map.get_step_size()
             step_area = math.pow(step_size, 2)
-            area_list = [ebsd_map["grain_map"][grain_id].get_size()*step_area for grain_id in grain_ids]
+            area_list = [ebsd_map.get_grain(grain_id).get_size()*step_area for grain_id in grain_ids]
             
             # Calculate centroids
-            centroid_dict = get_centroids(ebsd_map["pixel_grid"])
+            centroid_dict = ebsd_map.get_centroids()
             centroid_x_list = [centroid_dict[grain_id][0]*step_size for grain_id in grain_ids]
             centroid_y_list = [centroid_dict[grain_id][1]*step_size for grain_id in grain_ids]
 
             # Get orientations
-            orientation_list = [ebsd_map["grain_map"][grain_id].get_orientation() for grain_id in grain_ids]
+            orientation_list = [ebsd_map.get_grain(grain_id).get_orientation() for grain_id in grain_ids]
             phi_1_list = [deg_to_rad(o[0]) for o in orientation_list]
             Phi_list   = [deg_to_rad(o[1]) for o in orientation_list]
             phi_2_list = [deg_to_rad(o[2]) for o in orientation_list]
@@ -471,20 +416,3 @@ class Controller:
 
         # Returns the data
         return data_dict_list
-
-def get_grain_ids(grain_map:dict, step_size:float, min_area:float=None) -> list:
-    """
-    Gets the grain IDs and filter by area if defined
-
-    Parameters:
-    * `grain_map`: The mapping of IDs to grains
-    * `step_size`: The step size
-    * `min_area`:  The minimum area to include the grains
-    
-    Returns the list of grain IDs
-    """
-    grain_ids = list(grain_map.keys())
-    if min_area != None:
-        min_area_scaled = min_area / math.pow(step_size, 2)
-        grain_ids = [grain_id for grain_id in grain_ids if grain_map[grain_id].get_size() > min_area_scaled]
-    return sorted(grain_ids)

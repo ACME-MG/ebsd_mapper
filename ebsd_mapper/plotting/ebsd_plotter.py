@@ -7,33 +7,32 @@
 
 # Libraries
 import matplotlib.pyplot as plt
-from ebsd_mapper.mapping.gridder import get_centroids
+from ebsd_mapper.ebsd.map import Map
 from ebsd_mapper.maths.ipf_cubic import euler_to_rgb
 from ebsd_mapper.helper.plotter import get_coordinate, get_boundary
 
 # EBSDPlotter class
 class EBSDPlotter:
     
-    def __init__(self, pixel_grid:list, grain_map:dict, step_size:float, figure_x:float=10):
+    def __init__(self, ebsd_map:Map, figure_x:float=10):
         """
         Constructor for the plotter class
         
         Parameters:
-        * `pixel_grid`: A grid of pixels
-        * `grain_map`:  A mapping of the grains to the average orientations
-        * `step_size`:  The step size of the EBSD map
-        * `figure_x`:   Size of the horizontal axis of the figure (in inches)
+        * `ebsd_map`: EBSD Map object
+        * `figure_x`: Size of the horizontal axis of the figure (in inches)
         """
         
         # Initialise internal variables
-        self.pixel_grid = pixel_grid
-        self.grain_map = grain_map
-        self.step_size = step_size
-        self.figure_x = figure_x
+        self.ebsd_map   = ebsd_map
+        self.pixel_grid = ebsd_map.get_pixel_grid()
+        self.grain_map  = ebsd_map.get_grain_map()
+        self.step_size  = ebsd_map.get_step_size()
+        self.figure_x   = figure_x
         
         # Initialise plot
-        x_max = len(pixel_grid[0])*self.step_size
-        y_max = len(pixel_grid)*self.step_size
+        x_max = len(self.pixel_grid[0])*self.step_size
+        y_max = len(self.pixel_grid)*self.step_size
         self.figure, self.axis = plt.subplots(figsize=(figure_x, y_max/x_max*figure_x))
         plt.xlim(0, x_max)
         plt.ylim(0, y_max)
@@ -94,7 +93,7 @@ class EBSDPlotter:
         Parameters:
         * `id_list`: List of grain IDs to add centroids to
         """
-        centroid_dict = get_centroids(self.pixel_grid)
+        centroid_dict = self.ebsd_map.get_centroids()
         for grain_id in centroid_dict.keys():
             if id_list != None and not grain_id in id_list:
                 continue

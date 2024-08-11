@@ -6,9 +6,8 @@
 """
 
 # Libraries
-import numpy as np
 from copy import deepcopy
-from ebsd_mapper.mapping.grain import Grain
+from ebsd_mapper.ebsd.grain import Grain
 
 # Special element IDs
 VOID_PIXEL_ID       = 100000 # large number
@@ -117,18 +116,6 @@ def read_pixels(path:str, step_size:float, headers:list=None) -> tuple:
     file.close()
     return pixel_grid, grain_map
 
-def get_max_grain_id(pixel_grid:list) -> int:
-    """
-    Gets the maximum grain ID of the pixel grid
-    
-    Parameters:
-    * `pixel_grid`:   A grid of pixels
-    
-    Returns the maximum grain ID
-    """
-    grain_ids = list(set([pixel for pixel_list in pixel_grid for pixel in pixel_list]))
-    return max(grain_ids)
-
 def shift_pixel_grid(pixel_grid:list, shift_amount:int) -> list:
     """
     Shifts the grain IDs of the pixel grid
@@ -202,34 +189,3 @@ def remap_grains(pixel_grid:list, grain_map:dict) -> tuple:
 
     # Return new pixel grid and grain map
     return new_pixel_grid, new_grain_map
-
-def get_centroids(pixel_grid:list) -> dict:
-    """
-    Gets the centroids for all the grains
-    
-    Parameters:
-    * `pixel_grid`: A grid of pixels
-    
-    Returns a dictionary of the grain IDs and their centroids
-    """
-    
-    # Initialise dictionary to store pixel positions
-    flattened = [pixel for pixel_list in pixel_grid for pixel in pixel_list]
-    grain_ids = list(set(flattened))
-    pixel_dict = {}
-    for grain_id in grain_ids:
-        pixel_dict[grain_id] = {"x": [], "y": []}
-    
-    # Add points to the pixel dictionary
-    for row in range(len(pixel_grid)):
-        for col in range(len(pixel_grid[row])):
-            pixel_dict[pixel_grid[row][col]]["x"].append(col)
-            pixel_dict[pixel_grid[row][col]]["y"].append(row)
-    
-    # Calculate centroids
-    centroid_dict = {}
-    for grain_id in grain_ids:
-        x_mean = np.average(pixel_dict[grain_id]["x"])
-        y_mean = np.average(pixel_dict[grain_id]["y"])
-        centroid_dict[grain_id] = (x_mean, y_mean)
-    return centroid_dict
