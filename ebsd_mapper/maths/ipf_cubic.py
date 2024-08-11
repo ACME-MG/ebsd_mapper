@@ -48,9 +48,9 @@ def euler_to_rgb(phi_1:float, Phi:float, phi_2:float, ipf="x") -> tuple:
     Converts orientation from euler-bunge to RGB (for cubic only)
     
     Parameters:
-    * `phi_1`: The average phi_1 orientation of the grain
-    * `Phi`:   The average Phi orientation of the grain
-    * `phi_2`: The average phi_2 orientation of the grain
+    * `phi_1`: The average phi_1 orientation of the grain (degrees)
+    * `Phi`:   The average Phi orientation of the grain (degrees)
+    * `phi_2`: The average phi_2 orientation of the grain (degrees)
     * `ipf`:   The IPF colouring scheme
     
     Returns the RGB values

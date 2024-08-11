@@ -137,7 +137,8 @@ def random_quat():
 
 def euler_to_quat(euler:list) -> list:
     """
-    Converts a set of euler-bunge angles (rads) into a quaternion
+    Converts a set of euler-bunge angles (rads) into a quaternion;
+    not sure if this works properly
 
     Parameters:
     `euler`: The euler angle (rads)

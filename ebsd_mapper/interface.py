@@ -66,16 +66,6 @@ class Interface:
         self.__print__("Defining headers for EBSD files")
         self.__controller__.define_headers(x, y, grain_id, phi_1, Phi, phi_2)
 
-    def define_min_area(self, min_area:float) -> None:
-        """
-        Defines the minimum area to do the mapping for
-
-        Parameters:
-        *  `min_area`: The minimum area
-        """
-        self.__print__(f"Defining the minimum area for the mapping to '{min_area}'")
-        self.__controller__.define_min_area(min_area)
-
     def import_ebsd(self, ebsd_path:str, step_size:float) -> None:
         """
         Reads in an EBSD map
@@ -111,11 +101,13 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.rebound_ebsd(x_min, x_max, y_min, y_max)
 
-    def map_ebsd(self, radius:float=1.0, tolerance:float=10.0, export_errors:bool=False) -> None:
+    def map_ebsd(self, min_area:float=1e7, radius:float=1.0, tolerance:float=1.0,
+                 export_errors:bool=False) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
         
         Parameters:
+        * `min_area`:      The minimum area of the grains to do the mapping
         * `radius`:        The radius to do the mapping; (1.0 covers most of the map)
         * `tolerance`:     The maximum error to allow for a mapping (1.0 allows most errors)
         * `export_errors`: Whether to export the errors or not

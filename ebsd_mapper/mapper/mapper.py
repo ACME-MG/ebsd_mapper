@@ -9,7 +9,8 @@
 import math, time
 from ebsd_mapper.mapper.edge import Edge
 from ebsd_mapper.helper.general import integer_to_ordinal, transpose, round_sf
-from ebsd_mapper.maths.orientation import get_geodesic, deg_to_rad
+from ebsd_mapper.maths.orientation import deg_to_rad
+from ebsd_mapper.maths.neml import get_cubic_misorientation
 
 # Constants
 NO_MAPPING = -1
@@ -82,12 +83,7 @@ class Mapper:
                 # Calculate orientation error
                 euler_1 = deg_to_rad(list(prev_orientations[i]))
                 euler_2 = deg_to_rad(list(curr_orientations[j]))
-                orientation_error = get_geodesic(euler_1, euler_2)
-                
-                if num_mapped == 4 and centroid_error < 0.1:
-                    print(euler_1)
-                    print(euler_2)
-                    print(orientation_error)
+                orientation_error = get_cubic_misorientation(euler_1, euler_2)
                 
                 # Create edge and append if under tolerance
                 edge = Edge(i, j)

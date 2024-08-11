@@ -47,15 +47,6 @@ class Controller:
         """
         self.headers = [x, y, grain_id, phi_1, Phi, phi_2]
 
-    def define_min_area(self, min_area:float) -> None:
-        """
-        Defines the minimum area to do the mapping for
-
-        Parameters:
-        *  `min_area`: The minimum area
-        """
-        self.min_area = min_area
-
     def import_ebsd(self, ebsd_path:str, step_size:float) -> None:
         """
         Reads in an EBSD map
@@ -140,15 +131,16 @@ class Controller:
                 new_grain_map[pixel] = grain_map[pixel]
         self.ebsd_maps[-1].set_grain_map(new_grain_map)
 
-    def map_ebsd(self, radius:float, tolerance:float) -> None:
+    def map_ebsd(self, radius:float, min_area:float, tolerance:float) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
         
         Parameters:
         * `radius`:    The radius to do the mapping; (1.0 covers the whole map)
+        * `min_area`:  The minimum area of the grains
         * `tolerance`: The maximum error to allow for a mapping
         """
-        mapper = Mapper(self.ebsd_maps, radius, self.min_area, tolerance)
+        mapper = Mapper(self.ebsd_maps, radius, min_area, tolerance)
         self.map_dict = mapper.link_ebsd_maps()
         error_dict = mapper.get_error_dict()
         return error_dict
