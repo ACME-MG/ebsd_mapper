@@ -140,15 +140,18 @@ class Controller:
                 new_grain_map[pixel] = grain_map[pixel]
         self.ebsd_maps[-1].set_grain_map(new_grain_map)
 
-    def map_ebsd(self, radius:float) -> None:
+    def map_ebsd(self, radius:float, tolerance:float) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
         
         Parameters:
-        * `radius`: The radius to do the mapping; (1.0 covers the whole map)
+        * `radius`:    The radius to do the mapping; (1.0 covers the whole map)
+        * `tolerance`: The maximum error to allow for a mapping
         """
-        mapper = Mapper(self.ebsd_maps, radius, self.min_area)
+        mapper = Mapper(self.ebsd_maps, radius, self.min_area, tolerance)
         self.map_dict = mapper.link_ebsd_maps()
+        error_dict = mapper.get_error_dict()
+        return error_dict
 
     def import_map(self, map_path:str) -> None:
         """
@@ -312,7 +315,8 @@ class Controller:
         # Get reorientation trajectories
         reorientation_dict = self.__get_reorientation__()
         if id_list == None:
-            id_list = [int(field.replace("g","").replace("_phi_1","")) for field in reorientation_dict.keys() if "phi_1" in field]
+            id_list = [int(field.replace("g","").replace("_phi_1",""))
+                       for field in reorientation_dict.keys() if "phi_1" in field]
         else:
             id_list = [id for id in id_list if f"g{id}_phi_1" in reorientation_dict.keys()]
 

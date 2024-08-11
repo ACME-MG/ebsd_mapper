@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from ebsd_mapper.ebsd.map import Map
 from ebsd_mapper.maths.ipf_cubic import euler_to_rgb
 from ebsd_mapper.helper.plotter import get_coordinate, get_boundary
+from ebsd_mapper.mapper.mapper import NO_MAPPING
 
 # EBSDPlotter class
 class EBSDPlotter:
@@ -112,8 +113,9 @@ class EBSDPlotter:
         x_list, y_list = [], []
         for row in range(len(self.pixel_grid)):
             for col in range(len(self.pixel_grid[row])):
-                if id_list == None or self.pixel_grid[row][col] in id_list:
-                    x_boundary, y_boundary = get_boundary(row, col, self.pixel_grid, self.step_size)
-                    x_list += x_boundary
-                    y_list += y_boundary
+                if id_list != None and not self.pixel_grid[row][col] in id_list:
+                    continue
+                x_boundary, y_boundary = get_boundary(row, col, self.pixel_grid, self.step_size)
+                x_list += x_boundary
+                y_list += y_boundary
         plt.plot(x_list, y_list, **settings)

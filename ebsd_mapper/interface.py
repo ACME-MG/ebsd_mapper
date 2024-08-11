@@ -9,7 +9,7 @@
 import inspect, re, time
 from ebsd_mapper.mapper.controller import Controller
 from ebsd_mapper.helper.general import integer_to_ordinal
-from ebsd_mapper.helper.io import safe_mkdir
+from ebsd_mapper.helper.io import safe_mkdir, dict_to_csv
 
 # Interface Class
 class Interface:
@@ -111,16 +111,20 @@ class Interface:
         self.__check_ebsd__()
         self.__controller__.rebound_ebsd(x_min, x_max, y_min, y_max)
 
-    def map_ebsd(self, radius:float) -> None:
+    def map_ebsd(self, radius:float=1.0, tolerance:float=10.0, export_errors:bool=False) -> None:
         """
         Maps the grains of the EBSD maps that have been read in
         
         Parameters:
-        * `radius`: The radius to do the mapping; (1.0 covers the whole map)
+        * `radius`:        The radius to do the mapping; (1.0 covers most of the map)
+        * `tolerance`:     The maximum error to allow for a mapping (1.0 allows most errors)
+        * `export_errors`: Whether to export the errors or not
         """
         self.__check_ebsd__(2)
         self.__print__(f"Mapping the grains of EBSD maps")
-        self.__controller__.map_ebsd(radius)
+        error_dict = self.__controller__.map_ebsd(radius, tolerance)
+        if export_errors:
+            dict_to_csv(error_dict, self.__get_output__("map_errors.csv"))
 
     def import_map(self, map_path:str) -> None:
         """

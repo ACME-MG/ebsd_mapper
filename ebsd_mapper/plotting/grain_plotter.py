@@ -10,13 +10,15 @@ import math
 import matplotlib.pyplot as plt
 from ebsd_mapper.maths.ipf_cubic import euler_to_rgb
 from ebsd_mapper.helper.plotter import get_coordinate, get_positions, save_plot, get_boundary
+from ebsd_mapper.mapper.mapper import NO_MAPPING
 
-def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x"):
+def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
+               step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x"):
     """
     Plots grain changes
     
     Parameters:
-    * `plot_path: Path to the plot
+    * `plot_path:        Path to the plot
     * `pixel_grid_list`: List of pixel grids
     * `grain_map_list`:  List of grain maps
     * `step_size_list`:  List of step sizes
@@ -36,7 +38,15 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_si
     # Get all pixel positions
     x_grid, y_grid = [], []
     for i in range(num_maps):
-        col_list, row_list = get_positions(mapped_grain_id_list[i], pixel_grid_list[i])
+        
+        # If no mapping is found, do not add coordinates
+        if mapped_grain_id_list[i] == NO_MAPPING:
+            x_grid.append([])
+            y_grid.append([])
+            continue
+        
+        # Otherwise, add coordinates of grain
+        col_list, row_list = get_positions(int(mapped_grain_id_list[i]), pixel_grid_list[i])
         x_list = [get_coordinate(col, step_size_list[i]) for col in col_list]
         y_list = [get_coordinate(row, step_size_list[i]) for row in row_list]
         x_grid.append(x_list)
@@ -44,10 +54,10 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_si
 
     # Calculate ranges of values
     buffer = 2
-    all_min_x = min([min(x_list)-step_size_list[i]*buffer for i, x_list in enumerate(x_grid)])
-    all_max_x = max([max(x_list)+step_size_list[i]*buffer for i, x_list in enumerate(x_grid)])
-    all_min_y = min([min(y_list)-step_size_list[i]*buffer for i, y_list in enumerate(y_grid)])
-    all_max_y = max([max(y_list)+step_size_list[i]*buffer for i, y_list in enumerate(y_grid)])
+    all_min_x = min([min(x_list)-step_size_list[i]*buffer for i, x_list in enumerate(x_grid) if len(x_list) > 0])
+    all_max_x = max([max(x_list)+step_size_list[i]*buffer for i, x_list in enumerate(x_grid) if len(x_list) > 0])
+    all_min_y = min([min(y_list)-step_size_list[i]*buffer for i, y_list in enumerate(y_grid) if len(y_list) > 0])
+    all_max_y = max([max(y_list)+step_size_list[i]*buffer for i, y_list in enumerate(y_grid) if len(y_list) > 0])
     x_range = all_max_x - all_min_x
     y_range = all_max_y - all_min_y
 
@@ -74,25 +84,27 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list, step_si
         x_list = x_grid[i]
         y_list = y_grid[i]
 
-        # Get IPF colour
-        orientation = grain_map[mapped_grain_index].get_orientation()
-        colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
+        # Only plot if there is a mapping
+        if mapped_grain_id_list[i] != NO_MAPPING:
 
-        # Plot the pixels
-        square_size = 65*subplot_width*step_size/(max(x_list)-min(x_list)+2*buffer*step_size)
-        axis.scatter(x_list, y_list, color=colour, s=square_size**2, marker="s")
+            # Get IPF colour
+            orientation = grain_map[mapped_grain_index].get_orientation()
+            colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
 
-        # Draw boundaries
-        boundary_x_list, boundary_y_list = [], []
-        for j in range(len(x_list)):
-            boundary_x, boundary_y = get_boundary(int(y_list[j]/step_size), int(x_list[j]/step_size), pixel_grid, step_size)
-            boundary_x_list += boundary_x
-            boundary_y_list += boundary_y
-        axis.plot(boundary_x_list, boundary_y_list, linewidth=1, color="black")
+            # Plot the pixels
+            square_size = 65*subplot_width*step_size/(max(x_list)-min(x_list)+2*buffer*step_size)
+            axis.scatter(x_list, y_list, color=colour, s=square_size**2, marker="s")
+
+            # Draw boundaries
+            boundary_x_list, boundary_y_list = [], []
+            for j in range(len(x_list)):
+                boundary_x, boundary_y = get_boundary(int(y_list[j]/step_size), int(x_list[j]/step_size), pixel_grid, step_size)
+                boundary_x_list += boundary_x
+                boundary_y_list += boundary_y
+            axis.plot(boundary_x_list, boundary_y_list, linewidth=1, color="black")
 
         # Add text and format axis
         axis.set_title(f"ebsd_{i+1}", fontsize=11)
-        # axis.text(all_min_x+buffer/5, all_min_y+buffer/5, f"ebsd_{i+1}", ha="left", va="top", fontsize=11)
         axis.invert_yaxis()
         axis.set_xlim(all_min_x, all_max_x)
         axis.set_ylim(all_max_y, all_min_y)
