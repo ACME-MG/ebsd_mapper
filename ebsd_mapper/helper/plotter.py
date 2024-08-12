@@ -80,6 +80,22 @@ def get_positions(grain_id:int, pixel_grid:list) -> tuple:
                 row_list.append(row)
     return col_list, row_list
 
+def define_legend(colour_list:list, label_list:list, type_list:list) -> None:
+    """
+    Manually defines the plot legend
+    
+    Parameters:
+    * `colour_list`: The colours in the legend
+    * `label_list`:  The keys to add to the legend
+    * `type_list`:   The type of the icons in the legend
+    """
+    for i in range(len(colour_list)):
+        if type_list[i] == "scatter":
+            plt.scatter([], [], color=colour_list[i], label=label_list[i], s=7**2)
+        elif type_list[i] == "line":
+            plt.plot([], [], color=colour_list[i], label=label_list[i], linewidth=2)
+    plt.legend(framealpha=1, edgecolor="black", fancybox=True, facecolor="white")
+
 def save_plot(file_path:str) -> None:
     """
     Saves the plot and clears the figure

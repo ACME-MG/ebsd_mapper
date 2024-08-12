@@ -114,7 +114,7 @@ class Interface:
         """
         self.__check_ebsd__(2)
         self.__print__(f"Mapping the grains of EBSD maps")
-        error_dict = self.__controller__.map_ebsd(radius, tolerance)
+        error_dict = self.__controller__.map_ebsd(radius, min_area, tolerance)
         if export_errors:
             dict_to_csv(error_dict, self.__get_output__("map_errors.csv"))
 
@@ -152,13 +152,12 @@ class Interface:
         ebsd_path = self.__get_output__(ebsd_path)
         self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
 
-    def plot_grain(self, grain_id:int, plot_path:str="grain_plot", ipf:str="x") -> None:
+    def plot_grain(self, grain_id:int, ipf:str="x") -> None:
         """
         Plots changes to a single grain
 
         Parameter:
         * `grain_id`: The grain ID
-        * `plot_path: Path to the plot (without extension)
         * `ipf`:      The IPF colour ("x", "y", "z")
         """
         self.__print__(f"Plotting changes to grain {grain_id}")
@@ -167,7 +166,7 @@ class Interface:
             self.__check_mapping__()
         if not grain_id in self.__controller__.map_dict["ebsd_1"]:
             raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
-        plot_path = self.__get_output__(f"{plot_path}_{grain_id}")
+        plot_path = self.__get_output__(f"plot_g{grain_id}.png")
         self.__controller__.plot_grain(grain_id, plot_path, ipf)
 
     def export_stats(self, stats_path:str="stats", sort_stat:str="grain_id", stats:list=None, add_header:bool=True, descending:bool=False) -> None:
@@ -206,7 +205,7 @@ class Interface:
         map_path = self.__get_output__(map_path)
         self.__controller__.export_map(map_path)
 
-    def export_reorientation(self, reorientation_path:str="reorientation") -> None:
+    def export_reorientation(self, reorientation_path:str="reorientation", process:bool=False) -> None:
         """
         Exports the reorientation trajectories of the mapped grains
 
@@ -216,20 +215,19 @@ class Interface:
         self.__print__("Exporting reorientation trajectories of mapped grains")
         self.__check_mapping__()
         reorientation_path = self.__get_output__(reorientation_path)
-        self.__controller__.export_reorientation(reorientation_path)
+        self.__controller__.export_reorientation(reorientation_path, process)
 
-    def plot_reorientation(self, plot_path:str="reorientation", structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
+    def plot_reorientation(self, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 
         Parameters:
-        * `plot_path`: Path to save the plot (without extension)
         * `structure`: Crystal structure ("bcc", "fcc")
         * `direction`: Direction to plot the IPF
         * `id_list`:   List of grain IDs to plot; if undefined, plots all mappable grains
         """
         self.__print__("Plotting the reorientation trajectories of mapped grains")
-        plot_path = self.__get_output__(plot_path)
+        plot_path = self.__get_output__(f"plot_rt")
         self.__controller__.plot_reorientation(plot_path, structure, direction, id_list)
 
     def __check_ebsd__(self, min_maps:int=0) -> None:

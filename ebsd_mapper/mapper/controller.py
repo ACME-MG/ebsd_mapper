@@ -9,18 +9,15 @@
 import math
 from copy import deepcopy
 from ebsd_mapper.mapper.gridder import get_void_pixel_grid, read_pixels, VOID_PIXEL_ID
-from ebsd_mapper.mapper.mapper import Mapper
+from ebsd_mapper.mapper.mapper import Mapper, NO_MAPPING
 from ebsd_mapper.ebsd.map import Map
 from ebsd_mapper.plotting.ebsd_plotter import EBSDPlotter
 from ebsd_mapper.helper.general import transpose, round_sf
 from ebsd_mapper.helper.io import dict_to_csv, csv_to_dict, get_file_path_exists
-from ebsd_mapper.helper.plotter import save_plot
-from ebsd_mapper.maths.orientation import deg_to_rad
-from ebsd_mapper.plotting.pole_figure import IPF, get_lattice, get_trajectories
+from ebsd_mapper.helper.plotter import define_legend, save_plot
+from ebsd_mapper.maths.orientation import deg_to_rad, process_trajectory
+from ebsd_mapper.plotting.pole_figure import IPF, get_lattice
 from ebsd_mapper.plotting.grain_plotter import plot_grain
-
-# Constants
-NO_MAPPING = ""
 
 class Controller:
 
@@ -206,16 +203,32 @@ class Controller:
         map_path = get_file_path_exists(map_path, "csv")
         dict_to_csv(self.map_dict, map_path)
 
-    def export_reorientation(self, reorientation_path:str) -> None:
+    def export_reorientation(self, reorientation_path:str, process:bool) -> None:
         """
         Calculates and saves the reorientation trajectories of the mapped grains
 
         Parameters:
         * `reorientation_path`: Path to save the dictionary
+        * `process`:            Whether to process the reorientation trajectories
         """
+        
+        # Get reorientation data
         reorientation_dict = self.__get_reorientation__()
+        if process:
+            for grain_id in reorientation_dict.keys():
+                reorientation_dict[grain_id] = process_trajectory(reorientation_dict[grain_id])
+        
+        # Reformat reorientation data
+        new_reorientation_dict = {}
+        for grain_id in reorientation_dict.keys():
+            data = transpose(reorientation_dict[grain_id])
+            new_reorientation_dict[f"g{grain_id}_phi_1"] = data[0]
+            new_reorientation_dict[f"g{grain_id}_Phi"]   = data[1]
+            new_reorientation_dict[f"g{grain_id}_phi_2"] = data[2]
+        
+        # Write reorientation data to CSV file
         reorientation_path = get_file_path_exists(reorientation_path, "csv")
-        dict_to_csv(reorientation_dict, reorientation_path)
+        dict_to_csv(new_reorientation_dict, reorientation_path)
 
     def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10,
                   grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
@@ -289,7 +302,7 @@ class Controller:
             ipf             = ipf
         )
 
-    def plot_reorientation(self, plot_path:str, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
+    def plot_reorientation(self, plot_path:str, structure:str="fcc", direction:list=[1,0,0], grain_ids:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 
@@ -297,66 +310,64 @@ class Controller:
         * `plot_path`: Path to save the plot
         * `structure`: Crystal structure ("bcc", "fcc")
         * `direction`: Direction to plot the IPF
-        * `id_list`:   List of grain IDs to plot; if undefined, plots all mappable grains
+        * `grain_ids`: List of grain IDs to plot; if undefined, plots all mappable grains
         """
 
         # Initialise plotter
         lattice = get_lattice(structure)
         ipf = IPF(lattice)
 
-        # Get reorientation trajectories
-        reorientation_dict = self.__get_reorientation__()
-        if id_list == None:
-            id_list = [int(field.replace("g","").replace("_phi_1",""))
-                       for field in reorientation_dict.keys() if "phi_1" in field]
-        else:
-            id_list = [id for id in id_list if f"g{id}_phi_1" in reorientation_dict.keys()]
-
-        # Initialise history
-        num_points = len(reorientation_dict[list(reorientation_dict.keys())[0]])
-        exp_history = [[] for _ in range(num_points)]
-        
-        # Get experimental history
-        for id in id_list:
-            phi_1 = reorientation_dict[f"g{id}_phi_1"]
-            Phi   = reorientation_dict[f"g{id}_Phi"]
-            phi_2 = reorientation_dict[f"g{id}_phi_2"]
-            for i in range(num_points):
-                exp_history[i].append([phi_1[i], Phi[i], phi_2[i]])
-
-        # Get trajectories and plot
-        exp_trajectories = get_trajectories(exp_history)
-        ipf.plot_ipf_trajectory(exp_trajectories, direction, "plot", {"color": "darkgray", "linewidth": 2})
-        ipf.plot_ipf_trajectory(exp_trajectories, direction, "arrow", {"color": "darkgray", "head_width": 0.01, "head_length": 0.015})
-        for i, et in enumerate(exp_trajectories):
+        # Plot raw reorientation trajectories
+        reorientation_dict = self.__get_reorientation__(grain_ids)
+        raw_trajectories = [reorientation_dict[grain_id] for grain_id in grain_ids]
+        ipf.plot_ipf_trajectory(raw_trajectories, direction, "plot", {"color": "darkgray", "linewidth": 2})
+        ipf.plot_ipf_trajectory(raw_trajectories, direction, "arrow", {"color": "darkgray", "head_width": 0.01, "head_length": 0.015})
+        for grain_id, et in zip(grain_ids, raw_trajectories):
             ipf.plot_ipf_trajectory([[et[0]]], direction, "scatter", {"color": "darkgray", "s": 8**2})
-            ipf.plot_ipf_trajectory([[et[0]]], direction, "text", {"color": "black", "fontsize": 8, "s": id_list[i]})
+            ipf.plot_ipf_trajectory([[et[0]]], direction, "text", {"color": "black", "fontsize": 8, "s": grain_id})
 
-        # Save plot
+        # Plot processed reorientation trajectories
+        sim_trajectories = [process_trajectory(raw_trajectory) for raw_trajectory in raw_trajectories]
+        ipf.plot_ipf_trajectory(sim_trajectories, direction, "plot", {"color": "green", "linewidth": 1, "zorder": 3})
+        ipf.plot_ipf_trajectory(sim_trajectories, direction, "arrow", {"color": "green", "head_width": 0.005, "head_length": 0.005*1.5, "zorder": 3})
+        ipf.plot_ipf_trajectory([[st[0]] for st in sim_trajectories], direction, "scatter", {"color": "green", "s": 4**2, "zorder": 3})  
+        
+        # Format and save plot
+        define_legend(["darkgray", "green"], ["Raw", "Processed"], ["line", "line"])
         plot_path = get_file_path_exists(plot_path, "png")
         save_plot(plot_path)
 
-    def __get_reorientation__(self) -> dict:
+    def __get_reorientation__(self, grain_ids:list=None) -> dict:
         """
-        Calculates the reorientation trajectories of the mapped grains (rads)
+        Calculates the reorientation trajectories of the mapped grains
+        
+        Parameters:
+        * `grain_ids`: The list of grain IDs to calculate the trajectories of;
+                       Uses all the grain IDs if undefined
+                       
+        Returns a dictionary of the reorientation trajectories (rads)
         """
 
-        # Initialise dictionary
-        reorientation_dict = {}
-        for grain_id in self.map_dict["ebsd_1"]:
-            reorientation_dict[f"g{grain_id}_phi_1"] = []
-            reorientation_dict[f"g{grain_id}_Phi"]   = []
-            reorientation_dict[f"g{grain_id}_phi_2"] = []
+        # Define grain IDs and initialise dictionary
+        if grain_ids != None:
+            grain_ids = [grain_id for grain_id in grain_ids if grain_id in self.map_dict["ebsd_1"]]
+        else:
+            grain_ids = self.map_dict["ebsd_1"]
+        reorientation_dict = dict(zip(grain_ids, [[] for _ in range(len(grain_ids))]))
 
         # Get reorientation trajectories
-        for i, base_id in enumerate(self.map_dict["ebsd_1"]):
-            grain_fields = [f"g{base_id}_{p}" for p in ["phi_1", "Phi", "phi_2"]]
+        for grain_id in grain_ids:
+            base_index = self.map_dict["ebsd_1"].index(grain_id)
             for j, ebsd_map in enumerate(self.ebsd_maps):
-                grain_id = self.map_dict[f"ebsd_{j+1}"][i]
-                orientation = ebsd_map.get_grain(grain_id).get_orientation()
-                orientation = deg_to_rad(list(orientation))
-                for k in range(len(grain_fields)):
-                    reorientation_dict[grain_fields[k]].append(orientation[k])
+                mapped_id = self.map_dict[f"ebsd_{j+1}"][base_index]
+                if mapped_id == NO_MAPPING and j == 0:
+                    reorientation_dict[grain_id].append([0.0,0.0,0.0])
+                elif mapped_id == NO_MAPPING and j > 0:
+                    reorientation_dict[grain_id].append(reorientation_dict[grain_id][-1])
+                else:
+                    orientation = ebsd_map.get_grain(mapped_id).get_orientation()
+                    orientation = deg_to_rad(list(orientation))
+                    reorientation_dict[grain_id].append(orientation)
 
         # Returns the dictionary
         return reorientation_dict

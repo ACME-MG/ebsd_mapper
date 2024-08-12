@@ -218,3 +218,14 @@ def get_geodesic(euler_1:list, euler_2:list) -> float:
     dot_product = np.clip(dot_product, -1.0, 1.0)
     distance = np.arccos(np.abs(dot_product))
     return distance
+
+def process_trajectory(trajectory:list) -> list:
+    """
+    Gets the smoothened reorientation trajectory
+    
+    Parameters:
+    * `trajectory`: The euler-bunge angles (rads)
+    
+    Returns the smoothened reorientation trajectory
+    """
+    return trajectory

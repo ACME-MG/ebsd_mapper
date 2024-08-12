@@ -24,17 +24,19 @@ itf.map_ebsd(
     export_errors = True
 )
 itf.export_map()
-itf.plot_ebsd(
-    ipf      = "x",
-    figure_x = 20,
-    grain_id = {"fontsize": 10, "color": "black"},
-    boundary = True,
-)
-# itf.export_reorientation() # FIX ME
+# itf.plot_ebsd(
+#     ipf      = "x",
+#     figure_x = 20,
+#     grain_id = {"fontsize": 10, "color": "black"},
+#     boundary = True,
+# )
+
+itf.export_reorientation()
+itf.plot_reorientation(id_list=[41])
 
 # Import map and export information
 # itf.import_map("results/240807161747_617_s3/grain_map.csv")
-id_list = itf.__controller__.map_dict["ebsd_1"]
-for id in id_list:
-    itf.plot_grain(grain_id=id)
+# id_list = itf.__controller__.map_dict["ebsd_1"]
+# for id in id_list:
+#     itf.plot_grain(grain_id=id)
     # itf.plot_reorientation(plot_path=f"reorientation_{id}", id_list=[id]) # FIX ME

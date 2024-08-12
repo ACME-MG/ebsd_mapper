@@ -8,14 +8,37 @@
 
 # Libraries
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from matplotlib.patches import PathPatch
+from matplotlib.path import Path
+from matplotlib.collections import PathCollection
+from matplotlib.colors import Normalize
+from matplotlib.colorbar import ColorbarBase
 from neml.math import rotations, tensors
 from neml.cp import crystallography
-from ebsd_mapper.helper.general import flatten
+from ebsd_mapper.helper.general import flatten, round_sf
 
 # Pole figure class
 class PF:
     
+    def __init__(self, lattice, sample_symmetry:list=[2,2,2], x_direction=[1.0,0,0], y_direction=[0,1.0,0]):
+        """
+        Constructor for PF class
+        
+        Parameters:
+        * `lattice`:         The lattice object
+        * `sample_symmetry`: Sample direction of the projection ([1] is no symmetry)
+        * `x_direction`:     X crystallographic direction of the projection
+        * `y_direction`:     Y crystallographic direction of the projection
+        """
+        self.lattice = lattice
+        sample_symmetry_str = "".join([str(ss) for ss in sample_symmetry])
+        self.sample_symmetry = crystallography.symmetry_rotations(sample_symmetry_str)
+        self.x_direction = [float(x) for x in x_direction]
+        self.y_direction = [float(y) for y in y_direction]
+
     def __init__(self, lattice, sample_symmetry:list=[2,2,2], x_direction=[1.0,0,0], y_direction=[0,1.0,0]):
         """
         Constructor for PF class
@@ -32,6 +55,51 @@ class PF:
         self.x_direction = [float(x) for x in x_direction]
         self.y_direction = [float(y) for y in y_direction]
 
+    def get_equivalent_poles(self, plane:list) -> list:
+        """
+        Gets the equivalent poles
+
+        Parameters:
+        * `plane`: Plane of the projection (i.e., crystal direction)
+
+        Returns the list of equivalent poles
+        """
+        poles = self.lattice.miller2cart_direction(plane)
+        eq_poles = self.lattice.equivalent_vectors(poles)
+        eq_poles = [pole.normalize() for pole in eq_poles]
+        eq_poles = [op.apply(p) for p in eq_poles for op in self.sample_symmetry]
+        return eq_poles
+
+    def initialise_polar_grid(self) -> plt.Axes:
+        """
+        Initialises the polar grid;
+        returns the axis
+        """
+        _, axis = plt.subplots(figsize=(5, 5), subplot_kw={"projection": "polar"})
+        axis.grid(False)
+        axis.get_yaxis().set_visible(False)
+        plt.ylim([0, 1.0])
+        plt.xticks([0, np.pi/2], ["  RD", "TD"], fontsize=15)
+        return axis
+
+    def get_polar_points(self, euler:list, eq_poles:list) -> list:
+        """
+        Converts the euler-bunge angles into polar points
+        
+        Parameters:
+        * `euler`:    Orientation in euler-bunge angles (rads)
+        * `eq_poles`: List of equivalent poles
+
+        Returns the list of polar points
+        """
+        standard_rotation = rotations.Orientation(tensors.Vector(self.x_direction), tensors.Vector(self.y_direction))
+        orientation = rotations.CrystalOrientation(euler[0], euler[1], euler[2], angle_type="radians", convention="bunge")
+        points = [standard_rotation.apply(orientation.inverse().apply(pp)) for pp in eq_poles]
+        points = [point for point in points if point[2] >= 0.0] # rid of points in the lower hemisphere
+        cart_points = np.array([project_stereographic(v) for v in points])
+        polar_points = np.array([cart2pol(cp) for cp in cart_points])
+        return polar_points
+
     def plot_pf(self, euler_list:list, plane:list, colour_list:list=None, size_list:list=None) -> None:
         """
         Plots a standard pole figure using a stereographic projection;
@@ -39,10 +107,10 @@ class PF:
 
         Parameters:
         * `euler_list`:  The list of orientations in euler-bunge form (rads)
-        * `plane`:       Plane of the projection
+        * `plane`:       Plane of the projection (i.e., crystal direction)
         * `colour_list`: List of values to define the colouring scheme
         * `size_list`:   List of values to define the sizing scheme
-
+        
         Plots the PF of the orientations
         """
         
@@ -50,37 +118,33 @@ class PF:
         rgb_colours = get_colours(euler_list, colour_list)
         norm_size_list = get_sizes(euler_list, size_list)
 
-        # Get the standard rotationn and equivalent poles
-        standard_rotation = rotations.Orientation(tensors.Vector(self.x_direction),
-                                                  tensors.Vector(self.y_direction))
-        poles = self.lattice.miller2cart_direction(plane)
-        eq_poles = self.lattice.equivalent_vectors(poles)
-        eq_poles = [pole.normalize() for pole in eq_poles]
-        eq_poles = [op.apply(p) for p in eq_poles for op in self.sample_symmetry] # gets points on the sphere
+        # Get the standard rotationn and equivalent poles, and creates the grid
+        eq_poles = self.get_equivalent_poles(plane)
+        axis = self.initialise_polar_grid()
 
-        # Creates the grid
-        plt.ylim([0, 1.0])
-        axis = plt.subplot(111, projection="polar")
-        axis.grid(False)
-        axis.get_yaxis().set_visible(False)
-        plt.xticks([0, np.pi/2], ["RD", "TD"])
-        
         # Iterate through the orientations
         for i, euler in enumerate(euler_list):
-        
-            # Gets the points
-            orientation = rotations.CrystalOrientation(euler[0], euler[1], euler[2], angle_type="radians", convention="bunge")
-            points = [standard_rotation.apply(orientation.inverse().apply(pp)) for pp in eq_poles]
-            points = [point for point in points if point[2] >= 0.0] # rid of points in the lower hemisphere
-
-            # Get polar coordinates
-            cart_points = np.array([project_stereographic(v) for v in points])
-            polar_points = np.array([cart2pol(cp) for cp in cart_points])
-
-            # Plots the polar coordinates
+            polar_points = self.get_polar_points(euler, eq_poles)
             size = norm_size_list[i] if size_list != None else 3
             colour = rgb_colours[i] if colour_list != None else None
             plot_points(axis, polar_points, size, colour)
+
+    def plot_pf_density(self, euler_list:list, plane:list) -> None:
+        """
+        Plots a standard pole figure with contoured colours based on point density
+        
+        Parameters:
+        * `euler_list`:  The list of orientations in euler-bunge form (rads)
+        * `plane`:       Plane of the projection (i.e., crystal direction)
+        """
+        eq_poles = self.get_equivalent_poles(plane)
+        self.initialise_polar_grid()
+        radius_list, theta_list = [], [] 
+        for euler in euler_list:
+            polar_points = self.get_polar_points(euler, eq_poles)
+            radius_list += list(polar_points[:,0])
+            theta_list += list(polar_points[:,1])
+        sns.kdeplot(x=radius_list, y=theta_list, cmap="viridis", levels=5, thresh=0)
 
 # Inverse pole figure class
 class IPF:
@@ -91,7 +155,7 @@ class IPF:
 
         Parameters:
         * `lattice`:         The lattice object
-        * `sample_symmetry`: Sample direction of the projection
+        * `sample_symmetry`: Sample direction of the projection ([1] is no symmetry)
         * `x_direction`:     X crystallographic direction of the projection
         * `y_direction`:     Y crystallographic direction of the projection
         """
@@ -108,8 +172,8 @@ class IPF:
         Projects a single sample direction onto a crystal
 
         Parameters:
-        * `quaternion`:       Orientation in quaternion form
-        * `direction`:        Direction of the projection
+        * `quaternion`: Orientation in quaternion form
+        * `direction`:  The sample direction
 
         Returns the projected points
         """
@@ -151,36 +215,59 @@ class IPF:
         reduced_points = [p for p in points if np.dot(p, norm_0) >= 0 and np.dot(p, norm_1) >= 0 and np.dot(p, norm_2) >= 0]
         return reduced_points
 
-    def initialise_ipf(self) -> plt.Axes:
+    def get_outline(self) -> list:
+        """
+        Returns a list of tuples for outlines of an IPF plot
+        """
+        all_points = []
+        for i,j in ((0,1), (2,0), (1,2)):
+            fs = np.linspace(0, 1, 5)
+            points = [project_stereographic((f*self.vectors[i]+(1-f)*self.vectors[j]) / 
+                      np.linalg.norm(f*self.vectors[i]+(1-f)*self.vectors[j])) for f in fs]
+            all_points += points
+        all_points = [tuple(point) for point in all_points]
+        return all_points
+
+    def plot_outline(self) -> None:
+        """
+        Plots the outline
+        """
+        all_points = self.get_outline()
+        x_list = [point[0] for point in all_points]
+        y_list = [point[1] for point in all_points]
+        plt.plot(x_list, y_list, color="black")
+
+    def initialise_ipf(self) -> tuple:
         """
         Initialises the format and border of the IPF plot
 
-        Returns the axis
+        Returns the axis and patch
         """
+
         # Create the plot
         axis = plt.subplot(111)
         axis.axis("off")
-        plt.text(0.10, 0.11, "[1 0 0]", transform=plt.gcf().transFigure)
-        plt.text(0.86, 0.11, "[1 1 0]", transform=plt.gcf().transFigure)
+        plt.text(0.10, 0.09, "[1 0 0]", transform=plt.gcf().transFigure)
+        plt.text(0.86, 0.09, "[1 1 0]", transform=plt.gcf().transFigure)
         plt.text(0.74, 0.88, "[1 1 1]", transform=plt.gcf().transFigure)
 
-        # Create the grid
-        for i,j in ((0,1), (1,2), (2,0)):
-            fs = np.linspace(0, 1, 100)
-            points = np.array([project_stereographic((f*self.vectors[i]+(1-f)*self.vectors[j]) / 
-                                                          np.linalg.norm(f*self.vectors[i]+(1-f)*self.vectors[j])) for f in fs])
-            plt.plot(points[:,0], points[:,1], color="k", linewidth=1)
+        # Plot the outline and set clip
+        all_points = self.get_outline()
+        path_codes = [Path.MOVETO] + [Path.LINETO]*(len(all_points)-2) + [Path.CLOSEPOLY]
+        path = Path(all_points, path_codes)
+        patch = PathPatch(path, facecolor="white", edgecolor="black")
+        axis.add_patch(patch)
 
-        # Returns the axis
-        return axis
+        # Returns the axis and patch
+        return axis, patch
 
     def get_points(self, euler:list, direction:list) -> list:
         """
         Converts an euler orientation into stereo points
 
         Parameters:
-        * `euler`:          The orientation in euler-bunge form (rads)
-        * `direction`:      Direction of the projection
+        * `euler`:     The orientation in euler-bunge form (rads)
+        * `direction`: The sample direction
 
         Returns a list of stereo points
         """
@@ -198,7 +285,7 @@ class IPF:
 
         Parameters:
         * `euler_list`:  The list of orientations in euler-bunge form (rads)
-        * `direction`:   Direction of the projection
+        * `direction`:   The sample direction
         * `colour_list`: List of values to define the colouring scheme
         * `size_list`:   List of values to define the sizing scheme
 
@@ -208,14 +295,22 @@ class IPF:
         # Initialise
         rgb_colours = get_colours(euler_list, colour_list)
         norm_size_list = get_sizes(euler_list, size_list)
-        axis = self.initialise_ipf()
+        axis, patch = self.initialise_ipf()
 
         # Iterate and plot the orientations
         for i, euler in enumerate(euler_list):
+            
+            # Initialise the points
             points = self.get_points(euler, direction)
-            size = norm_size_list[i] if size_list != None else 3
+            size = norm_size_list[i] if size_list != None else 8 # 5
             colour = rgb_colours[i] if colour_list != None else None
-            plot_points(axis, points, size, colour)
+            
+            # Plot and clip
+            pc = plot_points(axis, points, size, colour)
+            pc.set_clip_path(patch)
+        
+        # Add final outline
+        self.plot_outline()
 
     def plot_ipf_trajectory(self, trajectories:list, direction:list, function:str="scatter", settings:dict={}) -> None:
         """
@@ -223,22 +318,43 @@ class IPF:
 
         Parameters:
         * `trajectories`: The list of reorientation trajectories
-        * `direction`:    Direction of the projection
+        * `direction`:    The sample direction
         * `function`      Function to plot points
         * `settings`:     The plotting settings
         
         Plots the IPF of the reorientation trajectories
         """
-        axis = self.initialise_ipf()
+
+        # Initialise the IPF
+        axis, patch = self.initialise_ipf()
+        
+        # Add zorder in settings if not defined
+        if not "zorder" in settings.keys():
+            settings["zorder"] = 2
+        
+        # Iterate through trajectories and plot each
         for trajectory in trajectories:
+
+            # Get points
             points = np.array(flatten([self.get_points(euler, direction) for euler in trajectory]))
+            if len(points) == 0:
+                continue
+            
+            # Plot the points
             if function == "arrow": # experimental
-                axis.arrow(points[-3,0], points[-3,1], points[-1,0]-points[-3,0], points[-1,1]-points[-3,1], **settings)
+                pc = axis.arrow(points[-3,0], points[-3,1], points[-1,0]-points[-3,0], points[-1,1]-points[-3,1], **settings)
             elif function == "text":
-                axis.text(points[0,0], points[0,1], **settings)
-            else:
-                plotter = getattr(axis, function)
-                plotter(points[:,0], points[:,1], **settings)
+                pc = axis.text(points[0,0], points[0,1], **settings)
+            elif function == "plot":
+                pc = plt.plot(points[:,0], points[:,1], **settings)[0]
+            elif function == "scatter":
+                pc = plt.scatter(points[:,0], points[:,1], **settings)
+
+            # Clip the points
+            pc.set_clip_path(patch)
+            
+        # Add final outline
+        self.plot_outline()
 
 def get_lattice(structure:str="fcc"):
     """
@@ -285,7 +401,7 @@ def get_colours(orientations:list, values:list) -> list:
 
     Parameters:
     * `orientations`: The list of orientations
-    * `values`:       The list of value
+    * `values`:       The list of values
 
     Returns the list of colours
     """
@@ -299,11 +415,43 @@ def get_colours(orientations:list, values:list) -> list:
     # Normalise values
     norm_values = np.array(values)
     norm_values = (norm_values - min(norm_values)) / (max(norm_values) - min(norm_values))
-    
-    # Define colours and return
-    colour_map = plt.get_cmap("coolwarm")
-    colours = [colour_map(norm_value) for norm_value in norm_values]
+
+    # Define colour map and return
+    colours = cm.jet(norm_values)
     return np.array(colours)
+
+def get_colour_map(values:list, orientation:str="horizontal") -> None:
+    """
+    Plots a colour map
+
+    Parameters:
+    * `values`:      The list of values
+    * `orientation`: The orientation of the colour bar;
+                     ("horizontal", "vertical")
+    """
+
+    # Initialise figure
+    if orientation == "horizontal":
+        figure = plt.figure(figsize=(6, 2))
+        axis = figure.add_axes([0.2, 0.4, 0.6, 0.2])
+    else:
+        figure = plt.figure(figsize=(2, 6))
+        axis = figure.add_axes([0.4, 0.2, 0.2, 0.6])
+
+    # Get normalised values
+    min_value = min(values)
+    max_value = max(values)
+    norm = Normalize(vmin=min_value, vmax=max_value)
+
+    # Create colour bar
+    sm = plt.cm.ScalarMappable(cmap="jet", norm=norm)
+    sm.set_array([])
+    colour_bar = ColorbarBase(axis, cmap=cm.jet, norm=norm, orientation=orientation)
+
+    # Define the ticks
+    ticks = [round_sf(tick, 5) for tick in np.linspace(min_value, max_value, 5)]
+    colour_bar.set_ticks(ticks)
+    colour_bar.set_ticklabels([str(tick) for tick in ticks])
 
 def get_sizes(orientations:list, values:list) -> list:
     """
@@ -364,7 +512,7 @@ def normalise(value_list:list, min_norm:float=1.0, max_norm:list=32.0) -> list:
     normalised = [min_norm+((value-min_value)/(max_value-min_value))*(max_norm-min_norm) for value in value_list]
     return normalised
 
-def plot_points(axis:plt.Axes, points:list, size:float, colour:np.ndarray) -> None:
+def plot_points(axis:plt.Axes, points:list, size:float, colour:np.ndarray) -> PathCollection:
     """
     Plots the points on a plot
 
@@ -374,8 +522,11 @@ def plot_points(axis:plt.Axes, points:list, size:float, colour:np.ndarray) -> No
     * `size`:      The size of the points
     * `colour`:    The colour of the points; None if not defined
     * `is_family`: Whether the grain is part of the family; None if not defined
+
+    Returns the scatter object
     """
     if not isinstance(colour, np.ndarray):
-        axis.scatter(points[:,0], points[:,1], c="black", s=size**2)
+        scatter = axis.scatter(points[:,0], points[:,1], c="black", s=size**2)
     else:
-        axis.scatter(points[:,0], points[:,1], color=colour, edgecolor="black", linewidth=0.25, s=size**2)
+        scatter = axis.scatter(points[:,0], points[:,1], color=colour, edgecolor="black", linewidth=0.25, s=size**2)
+    return scatter
