@@ -10,6 +10,7 @@
 # Libraries
 import numpy as np, math, random
 from scipy.spatial.transform import Rotation
+from ebsd_mapper.maths.csl import get_symmetry_matrices
 
 def get_matrix_product(matrix_1:list, matrix_2:list) -> list:
     """
@@ -200,32 +201,21 @@ def get_average_euler(euler_list:list, degrees:bool=True) -> list:
         average_euler = rad_to_deg(average_euler)
     return average_euler
 
-def get_geodesic(euler_1:list, euler_2:list) -> float:
+def get_geodesic(quat_1:list, quat_2:list) -> float:
     """
-    Gets the geodesic distance between two euler angles
+    Gets the geodesic distance between two quaternions angles
     
     Parameters:
-    * `euler_1`: The first euler-bunge angle (rads)
-    * `euler_2`: The second euler-bunge angle (rads)
+    * `quat_1`: The first quaternion
+    * `quat_2`: The second quaternion
     
     Returns the geodesic distance
     """
-    quat_1 = np.array(euler_to_quat(euler_1))
-    quat_2 = np.array(euler_to_quat(euler_2))
+    quat_1 = np.array(quat_1)
+    quat_2 = np.array(quat_2)
     quat_1 = quat_1 / np.linalg.norm(quat_1)
     quat_2 = quat_2 / np.linalg.norm(quat_2)
     dot_product = np.dot(quat_1, quat_2)
     dot_product = np.clip(dot_product, -1.0, 1.0)
     distance = np.arccos(np.abs(dot_product))
     return distance
-
-def process_trajectory(trajectory:list) -> list:
-    """
-    Gets the smoothened reorientation trajectory
-    
-    Parameters:
-    * `trajectory`: The euler-bunge angles (rads)
-    
-    Returns the smoothened reorientation trajectory
-    """
-    return trajectory

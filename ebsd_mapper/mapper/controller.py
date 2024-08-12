@@ -10,12 +10,13 @@ import math
 from copy import deepcopy
 from ebsd_mapper.mapper.gridder import get_void_pixel_grid, read_pixels, VOID_PIXEL_ID
 from ebsd_mapper.mapper.mapper import Mapper, NO_MAPPING
+from ebsd_mapper.mapper.reorientation import process_trajectory
 from ebsd_mapper.ebsd.map import Map
 from ebsd_mapper.plotting.ebsd_plotter import EBSDPlotter
 from ebsd_mapper.helper.general import transpose, round_sf
 from ebsd_mapper.helper.io import dict_to_csv, csv_to_dict, get_file_path_exists
 from ebsd_mapper.helper.plotter import define_legend, save_plot
-from ebsd_mapper.maths.orientation import deg_to_rad, process_trajectory
+from ebsd_mapper.maths.orientation import deg_to_rad
 from ebsd_mapper.plotting.pole_figure import IPF, get_lattice
 from ebsd_mapper.plotting.grain_plotter import plot_grain
 

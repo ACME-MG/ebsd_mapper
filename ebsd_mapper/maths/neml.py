@@ -26,3 +26,15 @@ def get_cubic_misorientation(euler_1:list, euler_2:list):
     mori = sym_group.misorientation(euler_1, euler_2)
     _, mori_angle = mori.to_axis_angle()
     return mori_angle
+
+def euler_to_quat(euler:list) -> list:
+    """
+    Converts euler-bunge to quaternion
+    
+    Parameters:
+    * `euler`: The euler-bunge angle (rads) 
+    
+    Returns the quaternion as a list
+    """
+    orientation = rotations.Orientation(*euler, angle_type="radians", convention="bunge")
+    return list(orientation.quat)
