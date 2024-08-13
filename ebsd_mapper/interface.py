@@ -205,30 +205,44 @@ class Interface:
         map_path = self.__get_output__(map_path)
         self.__controller__.export_map(map_path)
 
-    def export_reorientation(self, reorientation_path:str="reorientation", process:bool=False) -> None:
+    def export_reorientation(self, reorientation_path:str="reorientation", process:bool=False, strain_list:list=None) -> None:
         """
         Exports the reorientation trajectories of the mapped grains
 
         Parameters:
         * `reorientation_path`: Path to save the dictionary (without extension)
+        * `process`:            Whether to process the reorientation trajectories
+        * `strain_list`:        List of strain values
         """
         self.__print__("Exporting reorientation trajectories of mapped grains")
         self.__check_mapping__()
+        if process and strain_list == None:
+            raise ValueError("The `strain_list` parameter must be defined if `process` is `True`!")
+        elif process and len(strain_list) != len(self.__controller__.ebsd_maps):
+            raise ValueError("The `strain_list` must contain the same number of elements as the number of imported EBSD maps!")
         reorientation_path = self.__get_output__(reorientation_path)
-        self.__controller__.export_reorientation(reorientation_path, process)
+        self.__controller__.export_reorientation(reorientation_path, process, strain_list)
 
-    def plot_reorientation(self, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
+    def plot_reorientation(self, strain_list:list, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 
         Parameters:
-        * `structure`: Crystal structure ("bcc", "fcc")
-        * `direction`: Direction to plot the IPF
-        * `id_list`:   List of grain IDs to plot; if undefined, plots all mappable grains
+        * `strain_list`: List of strain values
+        * `structure`:   Crystal structure ("bcc", "fcc")
+        * `direction`:   Direction to plot the IPF
+        * `id_list`:     List of grain IDs to plot; if undefined, plots all mappable grains
         """
         self.__print__("Plotting the reorientation trajectories of mapped grains")
         plot_path = self.__get_output__(f"plot_rt")
-        self.__controller__.plot_reorientation(plot_path, structure, direction, id_list)
+        self.__controller__.plot_reorientation(plot_path, strain_list, structure, direction, id_list)
+
+    def get_mapped_ids(self) -> list:
+        """
+        Returns a list of the grain IDs
+        """
+        if len(self.__controller__.ebsd_maps) > 0:
+            return self.__controller__.map_dict["ebsd_1"]
 
     def __check_ebsd__(self, min_maps:int=0) -> None:
         """

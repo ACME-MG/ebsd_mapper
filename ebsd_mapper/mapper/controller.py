@@ -204,20 +204,21 @@ class Controller:
         map_path = get_file_path_exists(map_path, "csv")
         dict_to_csv(self.map_dict, map_path)
 
-    def export_reorientation(self, reorientation_path:str, process:bool) -> None:
+    def export_reorientation(self, reorientation_path:str, process:bool, strain_list:list) -> None:
         """
         Calculates and saves the reorientation trajectories of the mapped grains
 
         Parameters:
         * `reorientation_path`: Path to save the dictionary
         * `process`:            Whether to process the reorientation trajectories
+        * `strain_list`:        List of strain values
         """
         
         # Get reorientation data
         reorientation_dict = self.__get_reorientation__()
         if process:
             for grain_id in reorientation_dict.keys():
-                reorientation_dict[grain_id] = process_trajectory(reorientation_dict[grain_id])
+                reorientation_dict[grain_id] = process_trajectory(reorientation_dict[grain_id], strain_list)
         
         # Reformat reorientation data
         new_reorientation_dict = {}
@@ -303,15 +304,17 @@ class Controller:
             ipf             = ipf
         )
 
-    def plot_reorientation(self, plot_path:str, structure:str="fcc", direction:list=[1,0,0], grain_ids:list=None) -> None:
+    def plot_reorientation(self, plot_path:str, strain_list:list, structure:str="fcc",
+                           direction:list=[1,0,0], grain_ids:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
 
         Parameters:
-        * `plot_path`: Path to save the plot
-        * `structure`: Crystal structure ("bcc", "fcc")
-        * `direction`: Direction to plot the IPF
-        * `grain_ids`: List of grain IDs to plot; if undefined, plots all mappable grains
+        * `plot_path`:   Path to save the plot
+        * `strain_list`: List of strain values
+        * `structure`:   Crystal structure ("bcc", "fcc")
+        * `direction`:   Direction to plot the IPF
+        * `grain_ids`:   List of grain IDs to plot; if undefined, plots all mappable grains
         """
 
         # Initialise plotter
@@ -328,7 +331,7 @@ class Controller:
             ipf.plot_ipf_trajectory([[et[0]]], direction, "text", {"color": "black", "fontsize": 8, "s": grain_id})
 
         # Plot processed reorientation trajectories
-        sim_trajectories = [process_trajectory(raw_trajectory) for raw_trajectory in raw_trajectories]
+        sim_trajectories = [process_trajectory(raw_trajectory, strain_list) for raw_trajectory in raw_trajectories]
         ipf.plot_ipf_trajectory(sim_trajectories, direction, "plot", {"color": "green", "linewidth": 1, "zorder": 3})
         ipf.plot_ipf_trajectory(sim_trajectories, direction, "arrow", {"color": "green", "head_width": 0.005, "head_length": 0.005*1.5, "zorder": 3})
         ipf.plot_ipf_trajectory([[st[0]] for st in sim_trajectories], direction, "scatter", {"color": "green", "s": 4**2, "zorder": 3})  

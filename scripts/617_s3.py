@@ -17,26 +17,28 @@ for i, file_path in enumerate(file_path_list):
     itf.import_ebsd(file_path, 5)
 
 # Conduct mapping
-itf.map_ebsd(
-    min_area      = 1000,
-    radius        = 0.2,
-    tolerance     = 0.1,
-    export_errors = True
-)
-itf.export_map()
+# itf.map_ebsd(
+#     min_area      = 1000,
+#     radius        = 0.2,
+#     tolerance     = 0.1,
+#     export_errors = True
+# )
+# itf.export_map()
 # itf.plot_ebsd(
 #     ipf      = "x",
 #     figure_x = 20,
 #     grain_id = {"fontsize": 10, "color": "black"},
 #     boundary = True,
 # )
+itf.import_map("results/240813093129_617_s3/grain_map.csv")
 
-itf.export_reorientation()
-itf.plot_reorientation(id_list=[41])
+strain_list = [0.0, 0.0, 0.00063414, 0.00153, 0.00494, 0.0098, 0.01483, 0.02085, 0.02646, 0.03516,
+               0.04409, 0.05197, 0.06013, 0.07059, 0.08208, 0.09406, 0.10561, 0.11929, 0.13656,
+               0.15442, 0.18237, 0.20849, 0.23627, 0.26264, 0.28965]
+itf.export_reorientation(process=True, strain_list=strain_list)
 
 # Import map and export information
-# itf.import_map("results/240807161747_617_s3/grain_map.csv")
-# id_list = itf.__controller__.map_dict["ebsd_1"]
-# for id in id_list:
-#     itf.plot_grain(grain_id=id)
-    # itf.plot_reorientation(plot_path=f"reorientation_{id}", id_list=[id]) # FIX ME
+mapped_ids = itf.get_mapped_ids()
+id_grid = [mapped_ids[i:i+10] for i in range(0, len(mapped_ids), 10)]
+for id_list in id_grid:
+    itf.plot_reorientation(id_list=id_list, strain_list=strain_list)
