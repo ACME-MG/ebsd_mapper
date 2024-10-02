@@ -154,7 +154,7 @@ class Interface:
 
     def plot_grain(self, grain_id:int, ipf:str="x") -> None:
         """
-        Plots changes to a single grain
+        Plots changes to a single grain (i.e., morphology trajectory)
 
         Parameter:
         * `grain_id`: The grain ID
@@ -166,7 +166,7 @@ class Interface:
             self.__check_mapping__()
         if not grain_id in self.__controller__.map_dict["ebsd_1"]:
             raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
-        plot_path = self.__get_output__(f"plot_g{grain_id}.png")
+        plot_path = self.__get_output__(f"g{grain_id}_mt")
         self.__controller__.plot_grain(grain_id, plot_path, ipf)
 
     def export_stats(self, stats_path:str="stats", sort_stat:str="grain_id", stats:list=None, add_header:bool=True, descending:bool=False) -> None:
@@ -234,7 +234,7 @@ class Interface:
         * `id_list`:     List of grain IDs to plot; if undefined, plots all mappable grains
         """
         self.__print__("Plotting the reorientation trajectories of mapped grains")
-        plot_path = self.__get_output__(f"plot_rt")
+        plot_path = self.__get_output__(f"plot_rt" if len(id_list) > 1 else f"g{id_list[0]}_rt")
         self.__controller__.plot_reorientation(plot_path, strain_list, structure, direction, id_list)
 
     def get_mapped_ids(self) -> list:

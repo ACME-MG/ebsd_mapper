@@ -10,7 +10,6 @@
 # Libraries
 import numpy as np, math, random
 from scipy.spatial.transform import Rotation
-from ebsd_mapper.maths.csl import get_symmetry_matrices
 
 def get_matrix_product(matrix_1:list, matrix_2:list) -> list:
     """
