@@ -164,8 +164,8 @@ class Interface:
         self.__check_ebsd__(1)
         if len(self.__controller__.ebsd_maps) > 1:
             self.__check_mapping__()
-        if not grain_id in self.__controller__.map_dict["ebsd_1"]:
-            raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
+            if not grain_id in self.__controller__.map_dict["ebsd_1"]:
+                raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
         plot_path = self.__get_output__(f"g{grain_id}_mt")
         self.__controller__.plot_grain(grain_id, plot_path, ipf)
 
