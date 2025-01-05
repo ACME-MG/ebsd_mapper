@@ -169,6 +169,21 @@ class Interface:
         plot_path = self.__get_output__(f"g{grain_id}_mt")
         self.__controller__.plot_grain(grain_id, plot_path, ipf)
 
+    def plot_grains_manual(self, grain_ids:list, x_ticks:tuple=None, y_ticks:tuple=None, ipf:str="x") -> None:
+        """
+        Plots multiple grains in the most recently imported EBSD map 
+
+        Parameter:
+        * `grain_ids`: List of grain IDs
+        * `x_ticks`:  The horizontal ticks of the plot
+        * `y_ticks`:  The vertical ticks of the plot
+        * `ipf`:       The IPF colour ("x", "y", "z")
+        """
+        self.__print__(f"Plotting multiple grains manually")
+        self.__check_ebsd__(1)
+        plot_path = self.__get_output__(f"grains_mt")
+        self.__controller__.plot_grains_manual(grain_ids, plot_path, x_ticks, y_ticks, ipf)
+
     def export_stats(self, stats_path:str="stats", sort_stat:str="grain_id", stats:list=None, add_header:bool=True, descending:bool=False) -> None:
         """
         Exports the statistics of the EBSD maps;

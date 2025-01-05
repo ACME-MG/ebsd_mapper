@@ -9,6 +9,48 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+def get_boundaries(row:int, col:int, pixel_grid:list, step_size:float, grain_ids:list) -> tuple:
+    """
+    Gets coordinates for drawing the boundaries
+
+    Parameters:
+    * `row`:        The row of the pixel
+    * `col`:        The column of the pixel
+    * `pixel_grid`: The grid of pixels
+    * `step_size`:  The step size
+    * `grain_ids`:  List of grain IDs to get boundaries for
+
+    Returns the x and y lists
+    """
+
+    # Initialise
+    x_list, y_list = [], []
+    x = get_coordinate(col, step_size)
+    y = get_coordinate(row, step_size)
+    
+    # Check to add boundary on the right
+    if col+1 >= len(pixel_grid[0]) or not pixel_grid[row][col+1] in grain_ids:
+        x_list += [x + step_size/2]*2 + [np.NaN]
+        y_list += [y - step_size/2, y + step_size/2] + [np.NaN]
+
+    # Check to add boundary on the left
+    if col-1 < 0 or not pixel_grid[row][col-1] in grain_ids:
+        x_list += [x - step_size/2]*2 + [np.NaN]
+        y_list += [y - step_size/2, y + step_size/2] + [np.NaN]
+
+    # Check to add boundary on the top
+    if row+1 >= len(pixel_grid) or not pixel_grid[row+1][col] in grain_ids:
+        x_list += [x - step_size/2, x + step_size/2] + [np.NaN]
+        y_list += [y + step_size/2]*2 + [np.NaN]
+
+    # Check to add boundary on the bottom
+    if row-1 < 0 or not pixel_grid[row-1][col] in grain_ids:
+        x_list += [x - step_size/2, x + step_size/2] + [np.NaN]
+        y_list += [y - step_size/2]*2 + [np.NaN]
+
+    # Return the coordinates
+    return x_list, y_list
+
 def get_boundary(row:int, col:int, pixel_grid:list, step_size:float) -> tuple:
     """
     Gets coordinates for drawing the boundaries

@@ -18,7 +18,7 @@ from ebsd_mapper.helper.io import dict_to_csv, csv_to_dict, get_file_path_exists
 from ebsd_mapper.helper.plotter import define_legend, save_plot
 from ebsd_mapper.maths.orientation import deg_to_rad
 from ebsd_mapper.plotting.pole_figure import IPF, get_lattice
-from ebsd_mapper.plotting.grain_plotter import plot_grain
+from ebsd_mapper.plotting.grain_plotter import plot_grain, plot_grains_manual
 
 class Controller:
 
@@ -302,6 +302,29 @@ class Controller:
             map_dict        = self.map_dict,
             grain_id        = grain_id,
             ipf             = ipf
+        )
+
+    def plot_grains_manual(self, grain_ids:list, plot_path:str, x_ticks:tuple,
+                           y_ticks:tuple, ipf:str="x") -> None:
+        """
+        Plots multiple grains in the most recently imported EBSD map 
+
+        Parameter:
+        * `grain_ids`: List of grain IDs
+        * `plot_path:  Path to the plot
+        * `x_ticks`:   The horizontal ticks of the plot
+        * `y_ticks`:   The vertical ticks of the plot
+        * `ipf`:       The IPF colour ("x", "y", "z")
+        """
+        plot_grains_manual(
+            plot_path  = get_file_path_exists(plot_path, "png"),
+            pixel_grid = self.ebsd_maps[-1].get_pixel_grid(),
+            grain_map  = self.ebsd_maps[-1].get_grain_map(),
+            step_size  = self.ebsd_maps[-1].get_step_size(),
+            grain_ids  = grain_ids,
+            x_ticks   = x_ticks,
+            y_ticks   = y_ticks,
+            ipf        = ipf
         )
 
     def plot_reorientation(self, plot_path:str, strain_list:list, structure:str="fcc",

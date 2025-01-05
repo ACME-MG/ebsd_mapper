@@ -8,9 +8,82 @@
 # Libraries
 import math
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from ebsd_mapper.maths.ipf_cubic import euler_to_rgb
-from ebsd_mapper.helper.plotter import get_coordinate, get_positions, save_plot, get_boundary
+from ebsd_mapper.helper.plotter import get_coordinate, get_positions, save_plot, get_boundary, get_boundaries
 from ebsd_mapper.mapper.mapper import NO_MAPPING
+
+def plot_grains_manual(plot_path:str, pixel_grid:list, grain_map:dict, step_size:float,
+                       grain_ids:list, x_ticks:tuple, y_ticks:tuple, ipf:str="x"):
+    """
+    Plots grain changes
+    
+    Parameters:
+    * `plot_path:   Path to the plot
+    * `pixel_grid`: The pixel grid
+    * `grain_map`:  The grain map
+    * `step_size`:  The step size
+    * `grain_ids`:  List of grain IDs to plot
+    * `x_ticks`:    The horizontal ticks of the plot
+    * `y_ticks`:    The vertical ticks of the plot
+    * `ipf`:        IPF direction to plot
+    """
+    
+    # Initialise all coordinates
+    all_x_list = []
+    all_y_list = []
+
+    # Initialise plot
+    plt.figure(figsize=(5,5))
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.gca().set_position([0.17, 0.12, 0.75, 0.75])
+    plt.gca().grid(which="major", axis="both", color="SlateGray", linewidth=1, linestyle=":")
+
+    # Iterate through the grains
+    for grain_id in grain_ids:
+
+        # Get coordinates of the grain
+        col_list, row_list = get_positions(grain_id, pixel_grid)
+        x_list = [get_coordinate(col, step_size) for col in col_list]
+        y_list = [get_coordinate(row, step_size) for row in row_list]
+
+        # Get colour
+        orientation = grain_map[grain_id].get_orientation()
+        colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
+
+        # Plot each pixel of the grain
+        for x, y in zip(x_list, y_list):
+            coordinates = [(x-step_size/2,y-step_size/2), (x-step_size/2,y+step_size/2),
+                           (x+step_size/2,y+step_size/2), (x+step_size/2,y-step_size/2),]
+            polygon = patches.Polygon(coordinates, closed=True, fill=True, facecolor=colour)
+            plt.gca().add_patch(polygon)
+
+        # Append coordinates to all coordinates
+        all_x_list += x_list
+        all_y_list += y_list
+
+    # Plot the grains' boundaries
+    bnd_x_list = []
+    bnd_y_list = []
+    for row in range(len(pixel_grid)):
+        for col in range(len(pixel_grid[row])):
+            if pixel_grid[row][col] in grain_ids:
+                bnd_x, bnd_y = get_boundaries(row, col, pixel_grid, step_size, grain_ids)
+                bnd_x_list += bnd_x
+                bnd_y_list += bnd_y
+    plt.plot(bnd_x_list, bnd_y_list, linewidth=1, color="black")
+
+    # Format and save the plot
+    if x_ticks != None:
+        plt.xticks(x_ticks, x_ticks)
+        plt.xlim(min(x_ticks), max(x_ticks))
+    if y_ticks != None:
+        plt.yticks(y_ticks, y_ticks)
+        plt.ylim(max(y_ticks), min(y_ticks))
+    plt.savefig(plot_path, dpi=300, bbox_inches="tight", pad_inches=0.2)
+    plt.cla()
+    plt.clf()
+    plt.close()
 
 def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
                step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x"):
@@ -24,7 +97,7 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
     * `step_size_list`:  List of step sizes
     * `map_dict`:        Dictionary of grain mappings across EBSD maps
     * `grain_id`:        Initial grain ID to display changes
-    * `
+    * `ipf`:             IPF direction to plot
     """
 
     # Get grain mapping
