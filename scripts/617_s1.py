@@ -42,4 +42,4 @@ cal_id_list = [56, 346, 463, 568, 650] # [75, 189, 314, 346, 463]
 # val_id_list = [35, 96, 117, 123, 135, 215, 346, 462, 463, 593, 650, 696, 745]
 itf.plot_reorientation(id_list=cal_id_list)
 for id in cal_id_list:
-    itf.plot_grain(grain_id=id)
+    itf.plot_grain_evolution(grain_id=id)

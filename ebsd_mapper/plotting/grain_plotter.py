@@ -37,7 +37,7 @@ def plot_grains_manual(plot_path:str, pixel_grid:list, grain_map:dict, step_size
     plt.figure(figsize=(5,5))
     plt.gca().set_aspect('equal', adjustable='box')
     plt.gca().set_position([0.17, 0.12, 0.75, 0.75])
-    plt.gca().grid(which="major", axis="both", color="SlateGray", linewidth=1, linestyle=":")
+    plt.gca().grid(which="major", axis="both", color="SlateGray", linewidth=1, linestyle=":", alpha=0.5)
 
     # Iterate through the grains
     for grain_id in grain_ids:
@@ -85,8 +85,9 @@ def plot_grains_manual(plot_path:str, pixel_grid:list, grain_map:dict, step_size
     plt.clf()
     plt.close()
 
-def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
-               step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x"):
+def plot_grain_evolution_separate(plot_path:str, pixel_grid_list:list, grain_map_list:list,
+                                  step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x",
+                                  white_space:bool=False):
     """
     Plots grain changes
     
@@ -98,6 +99,100 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
     * `map_dict`:        Dictionary of grain mappings across EBSD maps
     * `grain_id`:        Initial grain ID to display changes
     * `ipf`:             IPF direction to plot
+    * `white_space`:     Whether to include white space in the plot
+    """
+
+    # Get grain mapping
+    num_maps = len(pixel_grid_list)
+    if num_maps > 1:
+        grain_id_index = map_dict[list(map_dict.keys())[0]].index(grain_id)
+        mapped_grain_id_list = [map_dict[key][grain_id_index] for key in map_dict.keys()]
+    else:
+        mapped_grain_id_list = [grain_id]
+    
+    # Get all pixel positions
+    x_grid, y_grid = [], []
+    for i in range(num_maps):
+        
+        # If no mapping is found, do not add coordinates
+        if mapped_grain_id_list[i] == NO_MAPPING:
+            x_grid.append([])
+            y_grid.append([])
+            continue
+        
+        # Otherwise, add coordinates of grain
+        col_list, row_list = get_positions(int(mapped_grain_id_list[i]), pixel_grid_list[i])
+        x_list = [get_coordinate(col, step_size_list[i]) for col in col_list]
+        y_list = [get_coordinate(row, step_size_list[i]) for row in row_list]
+        x_grid.append(x_list)
+        y_grid.append(y_list)
+
+    # Iterate through the maps
+    for i in range(num_maps):
+        
+        # Check if the grain has mapping
+        mapped_grain_index = mapped_grain_id_list[i]
+        if mapped_grain_index == NO_MAPPING:
+            continue
+
+        # Initialise grain information
+        pixel_grid = pixel_grid_list[i]
+        grain_map  = grain_map_list[i]
+        step_size  = step_size_list[i]
+        x_list = x_grid[i]
+        y_list = y_grid[i]
+
+        # Initialise plot
+        x_range = abs(max(x_list)-min(x_list))
+        y_range = abs(max(y_list)-min(y_list))
+        pixel_size = 0.1
+        plt.figure(figsize=(x_range*pixel_size,y_range*pixel_size), dpi=100)
+        plt.gca().set_aspect("equal", adjustable="datalim")
+
+        # Get IPF colour
+        orientation = grain_map[mapped_grain_index].get_orientation()
+        colour = [rgb/255 for rgb in euler_to_rgb(*orientation, ipf=ipf)]
+
+        # Plot each pixel of the grain
+        for x, y in zip(x_list, y_list):
+            coordinates = [(x-step_size/2,y-step_size/2), (x-step_size/2,y+step_size/2),
+                        (x+step_size/2,y+step_size/2), (x+step_size/2,y-step_size/2),]
+            polygon = patches.Polygon(coordinates, closed=True, fill=True, facecolor=colour)
+            plt.gca().add_patch(polygon)
+
+        # Draw boundaries
+        boundary_x_list, boundary_y_list = [], []
+        for j in range(len(x_list)):
+            boundary_x, boundary_y = get_boundary(int(y_list[j]/step_size), int(x_list[j]/step_size), pixel_grid, step_size)
+            boundary_x_list += boundary_x
+            boundary_y_list += boundary_y
+        plt.gca().plot(boundary_x_list, boundary_y_list, linewidth=10, color="black")
+
+        # Format and save
+        plt.gca().invert_yaxis()
+        settings = {}
+        if not white_space:
+            plt.axis("off")
+            settings = {"bbox_inches": "tight", "pad_inches": 0, "transparent": True}
+        else:
+            plt.gca().set_title(f"ebsd_{i+1}", fontsize=11)
+        save_plot(f"{plot_path}_i{i+1}.png", settings)
+
+def plot_grain_evolution(plot_path:str, pixel_grid_list:list, grain_map_list:list,
+                         step_size_list:list, map_dict:dict, grain_id:int, ipf:str="x",
+                         white_space:bool=False):
+    """
+    Plots grain changes
+    
+    Parameters:
+    * `plot_path:        Path to the plot
+    * `pixel_grid_list`: List of pixel grids
+    * `grain_map_list`:  List of grain maps
+    * `step_size_list`:  List of step sizes
+    * `map_dict`:        Dictionary of grain mappings across EBSD maps
+    * `grain_id`:        Initial grain ID to display changes
+    * `ipf`:             IPF direction to plot
+    * `white_space`:     Whether to include white space in the plot
     """
 
     # Get grain mapping
@@ -181,9 +276,13 @@ def plot_grain(plot_path:str, pixel_grid_list:list, grain_map_list:list,
         axis.invert_yaxis()
         axis.set_xlim(all_min_x, all_max_x)
         axis.set_ylim(all_max_y, all_min_y)
-        
-    # Save the plot
-    save_plot(plot_path)
+
+    # Format and save
+    settings = {}
+    if not white_space:
+        plt.axis("off")
+        settings = {"bbox_inches": "tight", "pad_inches": 0, "transparent": True}
+    save_plot(f"{plot_path}.png", settings)
 
 def get_subplot_positions(subplot_size:float, subplot_width:float, subplot_height:float,
                           figure_gap:float, figure_width:float, figure_height:float) -> list:

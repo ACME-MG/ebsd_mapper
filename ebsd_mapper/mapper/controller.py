@@ -8,6 +8,7 @@
 # Libraries
 import math
 from copy import deepcopy
+import matplotlib.pyplot as plt
 from ebsd_mapper.mapper.gridder import get_void_pixel_grid, read_pixels, VOID_PIXEL_ID
 from ebsd_mapper.mapper.mapper import Mapper, NO_MAPPING
 from ebsd_mapper.mapper.reorientation import process_trajectory
@@ -18,7 +19,7 @@ from ebsd_mapper.helper.io import dict_to_csv, csv_to_dict, get_file_path_exists
 from ebsd_mapper.helper.plotter import define_legend, save_plot
 from ebsd_mapper.maths.orientation import deg_to_rad
 from ebsd_mapper.plotting.pole_figure import IPF, get_lattice
-from ebsd_mapper.plotting.grain_plotter import plot_grain, plot_grains_manual
+from ebsd_mapper.plotting.grain_plotter import plot_grain_evolution, plot_grain_evolution_separate, plot_grains_manual
 
 class Controller:
 
@@ -232,21 +233,22 @@ class Controller:
         reorientation_path = get_file_path_exists(reorientation_path, "csv")
         dict_to_csv(new_reorientation_dict, reorientation_path)
 
-    def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10,
-                  grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
+    def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10, grain_id:bool=False,
+                  boundary:bool=False, id_list:list=None, white_space:bool=True) -> None:
         """
         Plots the EBSD maps
 
         Parameters:
-        * `ebsd_path`: The path to save the EBSD files
-        * `ipf`:       The IPF colour ("x", "y", "z")
-        * `figure_x`:  The initial horizontal size of the figures
-        * `grain_id`:  Whether to include IDs in the EBSD maps;
-                       define dictionary for custom settings
-        * `boundary`:  Whether to include IDs in the EBSD maps;
-                       define dictionary for custom settings
-        * `id_list`:   The IDs of the grains to plot the IDs and boundaries;
-                       if undefined, adds for all grains
+        * `ebsd_path`:   The path to save the EBSD files
+        * `ipf`:         The IPF colour ("x", "y", "z")
+        * `figure_x`:    The initial horizontal size of the figures
+        * `grain_id`:    Whether to include IDs in the EBSD maps;
+                         define dictionary for custom settings
+        * `boundary`:    Whether to include IDs in the EBSD maps;
+                         define dictionary for custom settings
+        * `id_list`:     The IDs of the grains to plot the IDs and boundaries;
+                         if undefined, adds for all grains
+        * `white_space`: Whether to include white space in the plot
         """
 
         # Define settings
@@ -283,25 +285,36 @@ class Controller:
             if (isinstance(boundary, bool) and boundary) or isinstance(boundary, dict):
                 plotter.plot_boundaries(include, settings=boundary_settings)
             curr_ebsd_path = ebsd_path if len(self.ebsd_maps) == 1 else f"{ebsd_path}_{i+1}"
-            save_plot(f"{curr_ebsd_path}.png")
 
-    def plot_grain(self, grain_id:int, plot_path:str, ipf:str="x") -> None:
+            # Format and save
+            settings = {}
+            if not white_space:
+                plt.axis("off")
+                settings = {"bbox_inches": "tight", "pad_inches": 0, "transparent": True}
+            save_plot(f"{curr_ebsd_path}.png", settings)
+
+    def plot_grain_evolution(self, grain_id:int, plot_path:str, ipf:str="x", separate:bool=False,
+                             white_space:bool=False) -> None:
         """
         Plots changes to a single grain
 
         Parameter:
-        * `grain_id`: The grain ID
-        * `plot_path: Path to the plot
-        * `ipf`:      The IPF direction
+        * `grain_id`:    The grain ID
+        * `plot_path:    Path to the plot
+        * `ipf`:         The IPF direction
+        * `separate`:    To plot the grains as separate
+        * `white_space`: Whether to include white space in the plot
         """
-        plot_grain(
-            plot_path       = f"{plot_path}.png",
+        func = plot_grain_evolution_separate if separate else plot_grain_evolution
+        func(
+            plot_path       = plot_path,
             pixel_grid_list = [ebsd_map.get_pixel_grid() for ebsd_map in self.ebsd_maps],
             grain_map_list  = [ebsd_map.get_grain_map() for ebsd_map in self.ebsd_maps],
             step_size_list  = [ebsd_map.get_step_size() for ebsd_map in self.ebsd_maps],
             map_dict        = self.map_dict,
             grain_id        = grain_id,
-            ipf             = ipf
+            ipf             = ipf,
+            white_space     = white_space
         )
 
     def plot_grains_manual(self, grain_ids:list, plot_path:str, x_ticks:tuple,

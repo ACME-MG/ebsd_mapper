@@ -41,9 +41,9 @@ itf.export_reorientation(process=True, strain_list=strain_list)
 # mapped_ids = itf.get_mapped_ids()
 # itf.plot_reorientation(id_list=[269, 278, 294, 299, 302], strain_list=strain_list)
 # for id in [164, 173, 265, 213, 207]:
-#     itf.plot_grain(grain_id=id)
+#     itf.plot_grain_evolution(grain_id=id)
 # for id in [1, 5, 6, 7, 8]:
-#     itf.plot_grain(grain_id=id)
+#     itf.plot_grain_evolution(grain_id=id)
 # itf.plot_reorientation(id_list=mapped_ids, strain_list=strain_list)
     
 # id_grid = [mapped_ids[i:i+10] for i in range(0, len(mapped_ids), 10)]

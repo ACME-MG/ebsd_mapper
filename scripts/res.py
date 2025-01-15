@@ -26,4 +26,4 @@ itf.plot_ebsd(
     grain_id = {"fontsize": 10, "color": "black"},
     boundary = True,
 )
-itf.plot_grain(grain_id=10)
+itf.plot_grain_evolution(grain_id=10)

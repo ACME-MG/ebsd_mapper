@@ -129,36 +129,39 @@ class Interface:
         self.__print__(f"Importing map from '{map_path}'")
         self.__controller__.import_map(map_path)
 
-    def plot_ebsd(self, ebsd_path:str="ebsd", ipf:str="x", figure_x:float=10,
-                  grain_id:bool=False, boundary:bool=False, id_list:list=None) -> None:
+    def plot_ebsd(self, ebsd_path:str="ebsd", ipf:str="x", figure_x:float=10, grain_id:bool=False,
+                  boundary:bool=False, id_list:list=None, white_space:bool=True) -> None:
         """
         Plots the EBSD maps
 
         Parameters:
-        * `ebsd_path`: Path to save plot
-        * `ipf`:       The IPF colour ("x", "y", "z")
-        * `figure_x`:  The initial horizontal size of the figures
-        * `grain_id`:  Whether to include IDs in the EBSD maps;
-                       define dictionary for custom settings
-        * `boundary`:  Whether to include IDs in the EBSD maps;
-                       define dictionary for custom settings
-        * `id_list`:   The IDs of the grains to plot the IDs and boundaries;
-                       IDs are the ones of the first grain map;
-                       if undefined, adds for all grains
+        * `ebsd_path`:   Path to save plot
+        * `ipf`:         The IPF colour ("x", "y", "z")
+        * `figure_x`:    The initial horizontal size of the figures
+        * `grain_id`:    Whether to include IDs in the EBSD maps;
+                         define dictionary for custom settings
+        * `boundary`:    Whether to include IDs in the EBSD maps;
+                         define dictionary for custom settings
+        * `id_list`:     The IDs of the grains to plot the IDs and boundaries;
+                         IDs are the ones of the first grain map;
+                         if undefined, adds for all grains
+        * `white_space`: Whether to include white space in the plot
         """
         num_maps = len(self.__controller__.ebsd_maps)
         self.__print__(f"Plotting {num_maps} EBSD map(s)")
         self.__check_ebsd__(1)
         ebsd_path = self.__get_output__(ebsd_path)
-        self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list)
+        self.__controller__.plot_ebsd(ebsd_path, ipf, figure_x, grain_id, boundary, id_list, white_space)
 
-    def plot_grain(self, grain_id:int, ipf:str="x") -> None:
+    def plot_grain_evolution(self, grain_id:int, ipf:str="x", separate:bool=False, white_space:bool=False) -> None:
         """
         Plots changes to a single grain (i.e., morphology trajectory)
 
         Parameter:
-        * `grain_id`: The grain ID
-        * `ipf`:      The IPF colour ("x", "y", "z")
+        * `grain_id`:    The grain ID
+        * `ipf`:         The IPF colour ("x", "y", "z")
+        * `separate`:    To plot the grains as separate
+        * `white_space`: Whether to include white space in the plot
         """
         self.__print__(f"Plotting changes to grain {grain_id}")
         self.__check_ebsd__(1)
@@ -167,7 +170,7 @@ class Interface:
             if not grain_id in self.__controller__.map_dict["ebsd_1"]:
                 raise ValueError(f"The grain id of '{grain_id}' is not mappable!")
         plot_path = self.__get_output__(f"g{grain_id}_mt")
-        self.__controller__.plot_grain(grain_id, plot_path, ipf)
+        self.__controller__.plot_grain_evolution(grain_id, plot_path, ipf, separate, white_space)
 
     def plot_grains_manual(self, grain_ids:list, x_ticks:tuple=None, y_ticks:tuple=None, ipf:str="x") -> None:
         """
