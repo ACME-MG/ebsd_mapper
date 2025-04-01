@@ -59,7 +59,7 @@ def process_trajectory(trajectory:list, strain_list:list) -> list:
     # Smoothen trajectory
     quat_list  = [euler_to_quat(euler) for euler in new_trajectory]
     trans_list = transpose(quat_list)
-    poly_list  = [np.polyfit(strain_list, q, 3) for q in trans_list]
+    poly_list  = [np.polyfit(strain_list, q, 2) for q in trans_list]
     eval_list  = [np.polyval(poly, strain_list) for poly in poly_list]
     quat_list  = transpose(eval_list)
     processed_trajectory = [quat_to_euler(quat) for quat in quat_list]
