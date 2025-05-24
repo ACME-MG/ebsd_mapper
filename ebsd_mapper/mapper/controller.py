@@ -233,6 +233,37 @@ class Controller:
         reorientation_path = get_file_path_exists(reorientation_path, "csv")
         dict_to_csv(new_reorientation_dict, reorientation_path)
 
+    def export_area(self, area_path:str) -> None:
+        """
+        Calculates and saves the areas of the mapped grains
+
+        Parameters:
+        * `area_path`: Path to save the dictionary
+        """
+
+        # Define grain IDs and initialise dictionary
+        grain_ids = self.map_dict["ebsd_1"]
+        area_fields = [f"g{gid}_area" for gid in grain_ids]
+        area_dict = dict(zip(area_fields, [[] for _ in range(len(area_fields))]))
+
+        # Get areas
+        for grain_id in grain_ids:
+            area_field = f"g{grain_id}_area"
+            base_index = self.map_dict["ebsd_1"].index(grain_id)
+            for j, ebsd_map in enumerate(self.ebsd_maps):
+                mapped_id = self.map_dict[f"ebsd_{j+1}"][base_index]
+                if mapped_id == NO_MAPPING and j == 0:
+                    area_dict[area_field].append(0)
+                elif mapped_id == NO_MAPPING and j > 0:
+                    area_dict[area_field].append(area_dict[area_field][-1])
+                else:
+                    area = ebsd_map.get_grain(mapped_id).get_size()
+                    area_dict[area_field].append(area)
+
+        # Save the dictionary
+        area_path = get_file_path_exists(area_path, "csv")
+        dict_to_csv(area_dict, area_path)
+
     def plot_ebsd(self, ebsd_path:str, ipf:str="x", figure_x:float=10, grain_id:bool=False,
                   boundary:bool=False, id_list:list=None, white_space:bool=True) -> None:
         """

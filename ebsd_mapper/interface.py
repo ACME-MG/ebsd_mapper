@@ -241,6 +241,18 @@ class Interface:
         reorientation_path = self.__get_output__(reorientation_path)
         self.__controller__.export_reorientation(reorientation_path, process, strain_list)
 
+    def export_area(self, area_path:str="area") -> None:
+        """
+        Calculates and saves the areas of the mapped grains
+
+        Parameters:
+        * `area_path`: Path to save the dictionary
+        """
+        self.__print__("Exporting areas of mapped grains")
+        self.__check_mapping__()
+        area_path = self.__get_output__(area_path)
+        self.__controller__.export_area(area_path)
+
     def plot_reorientation(self, strain_list:list, structure:str="fcc", direction:list=[1,0,0], id_list:list=None) -> None:
         """
         Plots the reorientation trajectories on an inverse pole figure
